@@ -51,7 +51,7 @@
 - 希望经过 tokenize 之后保存到 `data/tokenized_data/` 下名为 `simple_math_4op` 的文件夹中
 - 设定文本最大程度为 2000
 
-则我们可以直接使用下面这段命令进行处理：
+则我们可以直接使用下面这段命令(即`tokenize.sh`文件)进行处理：
 ```shell
 CUDA_VISIBLE_DEVICES=0,1 python tokenize_dataset_rows.py \
     --model_checkpoint THUDM/chatglm-6b \
@@ -78,7 +78,7 @@ CUDA_VISIBLE_DEVICES=0,1 python tokenize_dataset_rows.py \
 - `logging_steps`, 多少步打印一次训练情况(loss, lr, etc.)
 - `output_dir`, 模型文件保存地址
 
-例如我们的数据集为 simple_math_4op，希望保存到 weights/simple_math_4op ，则执行下面命令：
+例如我们的数据集为 simple_math_4op，希望保存到 weights/simple_math_4op ，则执行下面命令(即`train.sh`文件)：
 ```shell
 CUDA_VISIBLE_DEVICES=2,3 python chatglm_lora_tuning.py \
     --tokenized_dataset simple_math_4op \
@@ -130,6 +130,7 @@ model.chat(tokenizer, "你好", history=[])
 理论上，可以通过多次执行 `model = PeftModel.from_pretrained(model, "weights/simple_math_4op").half()` 的方式，加载多个 LoRA 模型，从而混合不同Tool的能力，但实际测试的时候，由于暂时还不支持设置不同 LoRA weights的权重，往往效果不太好，存在覆盖或者遗忘的情况。
 
 
+---
 
 ### Acknowledgement
 - 首先最感谢的是 🤗Huggingface 团队开源的 [peft](https://github.com/huggingface/peft) 工具包，懂的都懂！
