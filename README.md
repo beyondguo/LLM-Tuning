@@ -10,7 +10,7 @@
 - 数据集分词预处理：`sh tokenize.sh`，对比不同的 LLM，需在 tokenize.sh 文件里切换 model_checkpoint 参数
 - 开启 LoRA 微调：`sh train.sh`，对于不同的 LLM，需切换不同的 python 文件来执行：
     - ChatGLM-6B 应使用 `chatglm_lora_tuning.py`
-    - ChatGLM-6B 应使用 `chatglm2_lora_tuning.py`
+    - ChatGLM2-6B 应使用 `chatglm2_lora_tuning.py`
     - baichuan-7B 应使用 `baichuan_lora_tuning.py`
 
 ---
