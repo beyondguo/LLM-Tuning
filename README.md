@@ -1,13 +1,16 @@
 ## Tuning LLMs with no tears.
 
 目前支持：
-- 清华 [ChatGLM-6B](https://huggingface.co/THUDM/chatglm-6b) 的 LoRA 微调
+- 清华 [ChatGLM2-6B](https://huggingface.co/THUDM/chatglm2-6b) 的 LoRA 微调 (New!🔥)
 - 百川智能 [baichuan-7B](https://huggingface.co/baichuan-inc/baichuan-7B) 的 LoRA 微调
+- 清华 [ChatGLM-6B](https://huggingface.co/THUDM/chatglm-6b) 的 LoRA 微调
+
 
 两行代码开启训练：
 - 数据集分词预处理：`sh tokenize.sh`，对比不同的 LLM，需在 tokenize.sh 文件里切换 model_checkpoint 参数
 - 开启 LoRA 微调：`sh train.sh`，对于不同的 LLM，需切换不同的 python 文件来执行：
     - ChatGLM-6B 应使用 `chatglm_lora_tuning.py`
+    - ChatGLM-6B 应使用 `chatglm2_lora_tuning.py`
     - baichuan-7B 应使用 `baichuan_lora_tuning.py`
 
 ---
@@ -16,6 +19,7 @@
 `pip install transformers datasets accelerate sentencepiece tensorboard peft`\
 目前测试的环境为：
 ```
+- Python 3.9.16
 - torch, Version: 2.0.1
 - transformers, Version: 4.29.1
 - datasets, Version: 2.12.0

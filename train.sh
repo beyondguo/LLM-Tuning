@@ -10,7 +10,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 python chatglm2_lora_tuning.py \
     --fp16 \
     --remove_unused_columns false \
     --logging_steps 50 \
-    --output_dir weights/sentiment_comp_ie_chatglm2_temp
+    --output_dir weights/sentiment_comp_ie_chatglm2
 
 # CUDA_VISIBLE_DEVICES=3 python chatglm_lora_tuning.py \
 #     --tokenized_dataset sentiment_comp_ie_shuffled \
