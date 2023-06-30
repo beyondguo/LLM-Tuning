@@ -13,9 +13,15 @@
     - ChatGLM2-6B 应使用 `chatglm2_lora_tuning.py`
     - baichuan-7B 应使用 `baichuan_lora_tuning.py`
 
+
 ---
 
-环境准备：\
+可复现的小项目：
+- [**ChatBaichuan**：基于 HC3 数据集让 百川大模型（baichuan-7B）有对话能力！](/projects/ChatBaichuan-HC3/)
+- [【娱乐向】**RulaiGPT**：如来~诶，它真来了吗？如~来~（拍桌！）](/projects/RulaiGPT/)
+---
+
+**环境准备**：\
 `pip install transformers datasets accelerate sentencepiece tensorboard peft`\
 目前测试的环境为：
 ```

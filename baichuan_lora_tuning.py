@@ -7,7 +7,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import DataCollatorForLanguageModeling
 import torch
 import torch.nn as nn
-from peft import get_peft_model, LoraConfig, TaskType
+from peft import get_peft_model, LoraConfig, TaskType, PeftModel
 from dataclasses import dataclass, field
 import datasets
 import os
@@ -22,6 +22,7 @@ class FinetuneArguments:
     tokenized_dataset: str = field(default=" ") # tokenized之后的数据集文件夹
     model_path: str = field(default=" ")
     lora_rank: int = field(default=8)
+    previous_lora_weights: str = field(default=None) # 如果要在前面的 LoRA 上继续训练，就设置一下之前的地址
 
 
 class CastOutputToFloat(nn.Sequential):
@@ -114,17 +115,23 @@ def main():
     # )
 
     # setup peft
-    peft_config = LoraConfig(
-        task_type=TaskType.CAUSAL_LM,
-        inference_mode=False,
-        r=finetune_args.lora_rank,
-        lora_alpha=32,
-        lora_dropout=0.1,
-        target_modules = ["W_pack"] # 把model打印出来，找跟attention相关的模块
-    )
-    
-    model = get_peft_model(model, peft_config)
-
+    if finetune_args.previous_lora_weights == None:
+        peft_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            inference_mode=False,
+            r=finetune_args.lora_rank,
+            lora_alpha=32,
+            lora_dropout=0.1,
+            target_modules = ["W_pack"] # 把model打印出来，找跟attention相关的模块
+        )
+        
+        model = get_peft_model(model, peft_config)
+    else:
+        model = PeftModel.from_pretrained(model, finetune_args.previous_lora_weights)
+        # see: https://github.com/huggingface/peft/issues/184
+        for name, param in model.named_parameters():
+            if 'lora' in name or 'Lora' in name:
+                param.requires_grad = True
 
     # start train
     model.save_pretrained(training_args.output_dir) # 因为adapter_config.json只能通过这个save_pretrained来生成，先这里生成一份，好在训练完之前就可以尝试中间的checkpoint
