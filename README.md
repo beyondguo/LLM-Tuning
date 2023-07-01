@@ -1,23 +1,23 @@
-## Tuning LLMs with no tears 💦.
+# Tuning LLMs with no tears 💦.
 
----
-可复现的小项目：
+
+💻 可复现的小项目：
 - [**ChatBaichuan**：基于 HC3 数据集让 百川大模型（baichuan-7B）有对话能力！](/projects/ChatBaichuan-HC3/)
 - [【娱乐向】**RulaiGPT**：如来\~诶，它真来了吗？如\~来\~（拍桌！）](/projects/RulaiGPT/)
 
 
-相关讨论区：
+💬 相关讨论区：
 - [官方 WeChat 讨论群/WeChat Group](https://github.com/beyondguo/LLM-Tuning/discussions/23)
 - [LLM 微调中的“灾难性遗忘”问题专题讨论区/Catastrophic Forgetting Discussion](https://github.com/beyondguo/LLM-Tuning/discussions/24)
 
 
-目前支持：
+🤖 目前支持：
 - 清华 [ChatGLM2-6B](https://huggingface.co/THUDM/chatglm2-6b) 的 LoRA 微调 (New!🔥)
 - 百川智能 [baichuan-7B](https://huggingface.co/baichuan-inc/baichuan-7B) 的 LoRA 微调
 - 清华 [ChatGLM-6B](https://huggingface.co/THUDM/chatglm-6b) 的 LoRA 微调
 
 
-两行代码开启训练：
+🎯 两行代码开启训练：
 - 数据集分词预处理：`sh tokenize.sh`，对比不同的 LLM，需在 tokenize.sh 文件里切换 model_checkpoint 参数
 - 开启 LoRA 微调：`sh train.sh`，对于不同的 LLM，需切换不同的 python 文件来执行：
     - ChatGLM-6B 应使用 `chatglm_lora_tuning.py`
