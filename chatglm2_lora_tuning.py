@@ -41,7 +41,7 @@ def data_collator(features: list) -> dict:
     labels_list = []
     for ids_l, feature in sorted(zip(len_ids, features), key=lambda x: -x[0]):
         ids = feature["input_ids"]
-        seq_len = feature["seq_len"]
+        seq_len = feature["seq_len"] # prompt length
         labels = (
             [-100] * (seq_len - 1) + ids[(seq_len - 1) :] + [-100] * (longest - ids_l)
         )
@@ -55,7 +55,10 @@ def data_collator(features: list) -> dict:
         "input_ids": input_ids,
         "labels": labels,
     }
-
+# 这里的 collator 主要参考了 https://github.com/mymusise/ChatGLM-Tuning/blob/master/finetune.py 中的写法
+# 将 prompt 的部分的label也设置为了 -100，从而在训练时不纳入loss的计算
+# 对比之下，我在 baichaun_lora_tuning.py 中，是直接使用 DataCollatorForLanguageModeling，prompt 也纳入了计算。
+# 这两种方式孰优孰劣尚不得而知，欢迎在issue或discussion中讨论。
 
 class ModifiedTrainer(Trainer):
     # def compute_loss(self, model, inputs, return_outputs=False):
