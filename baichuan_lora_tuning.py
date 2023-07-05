@@ -70,7 +70,7 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         model_checkpoint, load_in_8bit=False, trust_remote_code=True, 
         device_map="auto" # 模型不同层会被自动分配到不同GPU上进行计算
-        # device_map={'':torch.cuda.current_device()}
+        # device_map={'':torch.cuda.current_device()} # 艹，这个设置有bug，一个小小的baichaun在80G的卡都能爆，换成 auto 立马就好了
     )
     print(model.hf_device_map)
     

@@ -3,3 +3,7 @@
 /runs
 /weights
 lora-infer.py
+__pycache__/
+wandb/
+RLHF/__pycache__/
+RLHF/wandb/
