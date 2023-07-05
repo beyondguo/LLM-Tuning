@@ -62,14 +62,16 @@ class ModifiedTrainer(Trainer):
         ).loss
 
     def save_model(self, output_dir=None, _internal_call=False):
-        from transformers.trainer import TRAINING_ARGS_NAME
-
-        os.makedirs(output_dir, exist_ok=True)
-        torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
-        saved_params = {
-            k: v.to("cpu") for k, v in self.model.named_parameters() if v.requires_grad
-        }
-        torch.save(saved_params, os.path.join(output_dir, "adapter_model.bin"))
+        # 因为交给Trainer的model实际上是PeftModel类型，所以这里的 save_pretrained 会直接使用PeftModel的保存方法
+        # 从而只保存 LoRA weights
+        self.model.save_pretrained(output_dir)
+        # from transformers.trainer import TRAINING_ARGS_NAME
+        # os.makedirs(output_dir, exist_ok=True)
+        # torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
+        # saved_params = {
+        #     k: v.to("cpu") for k, v in self.model.named_parameters() if v.requires_grad
+        # }
+        # torch.save(saved_params, os.path.join(output_dir, "adapter_model.bin"))
         
 
 

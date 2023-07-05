@@ -1,10 +1,13 @@
 """
 Mainly copied from https://github.com/lvwerra/trl/blob/main/examples/stack_llama/scripts/reward_modeling.py
-
+Some changes：
+- dataset preprocessing
+- hyper-params
+- Trainer: modify the save_model func, to only save the LoRA weights
 """
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
-
+import os
 import evaluate
 import numpy as np
 import torch
@@ -21,7 +24,7 @@ from transformers import (
     TrainingArguments,
 )
 from transformers.utils import PaddingStrategy
-
+from transformers.trainer import TRAINING_ARGS_NAME
 from modeling_baichuan_for_cls import BaichuanForSequenceClassification
 
 # Define and parse arguments.
@@ -74,6 +77,14 @@ class ScriptArguments:
     num_train_epochs: Optional[int] = field(
         default=1,
         metadata={"help": "The number of training epochs for the reward model."},
+    )
+    eval_steps: Optional[int] = field(
+        default=500,
+        metadata={"help": "eval_steps"},
+    )
+    save_steps: Optional[int] = field(
+        default=500,
+        metadata={"help": "save_steps"},
     )
     train_subset: Optional[int] = field(
         default=100000,
@@ -150,9 +161,9 @@ training_args = TrainingArguments(
     num_train_epochs=script_args.num_train_epochs,
     weight_decay=script_args.weight_decay,
     evaluation_strategy="steps",
-    eval_steps=500,
+    eval_steps=script_args.eval_steps,
     save_strategy="steps",
-    save_steps=500,
+    save_steps=script_args.save_steps,
     gradient_accumulation_steps=script_args.gradient_accumulation_steps,
     gradient_checkpointing=script_args.gradient_checkpointing,
     deepspeed=script_args.deepspeed,
@@ -322,7 +333,17 @@ class RewardTrainer(Trainer):
         if return_outputs:
             return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}
         return loss
-
+    
+    def save_model(self, output_dir=None, _internal_call=False):
+        # 因为交给Trainer的model实际上是PeftModel类型，所以这里的 save_pretrained 会直接使用PeftModel的保存方法
+        # 从而只保存 LoRA weights
+        self.model.save_pretrained(output_dir)
+        # os.makedirs(output_dir, exist_ok=True)
+        # torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
+        # saved_params = {
+        #     k: v.to("cpu") for k, v in self.model.named_parameters() if v.requires_grad
+        # }
+        # torch.save(saved_params, os.path.join(output_dir, "adapter_model.bin"))
 
 # Train the model, woohoo.
 trainer = RewardTrainer(
