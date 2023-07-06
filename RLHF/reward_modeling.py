@@ -134,8 +134,10 @@ script_args = parser.parse_args_into_dataclasses()[0]
 """
 这下面这段自行根据数据集定义：
 """
-# load the reward dataset (beyond/rlhf-reward-single-round)
-reward_dataset = load_from_disk('../data/rlhf-reward-single-round')
+# load the reward dataset
+# - `beyond/rlhf-reward-single-round`` for English
+# - `beyond/rlhf-reward-single-round-trans_chinese`` for Chinese
+reward_dataset = load_from_disk('../data/rlhf-reward-single-round-trans_chinese')
 train_dataset = reward_dataset['train']
 eval_dataset = reward_dataset['test']
 if script_args.train_subset > 0:
@@ -148,7 +150,7 @@ good_key = 'chosen'
 bad_key = 'rejected'
 model_name_split = script_args.model_name.split("/")[-1]
 output_name = (
-    f"../weights/{model_name_split}_beyond_rlhf-reward-single-round_{script_args.train_subset}"
+    f"../weights/{model_name_split}_beyond_reward_chinese_{script_args.train_subset}"
 )
 """"""
 
@@ -175,7 +177,8 @@ training_args = TrainingArguments(
     logging_steps=10,
     optim=script_args.optim,
     lr_scheduler_type=script_args.lr_scheduler_type,
-    report_to="wandb" #"none"
+    report_to="wandb", #"none"
+    save_total_limit = 5
 )
 # Load the value-head model and tokenizer.
 tokenizer_name = script_args.tokenizer_name if script_args.tokenizer_name is not None else script_args.model_name
@@ -225,9 +228,11 @@ def preprocess_function(examples):
     }
     for question, response_j, response_k in zip(examples[question_key], examples[good_key], examples[bad_key]):
         # 这里是添加了"Question: "和"\n\nAnswer: "作为模板，可以根据自己的模型进行替换。要跟SFT阶段对应
-        tokenized_j = tokenizer("Question: " + question + "\n\nAnswer: " + response_j, truncation=True)
-        tokenized_k = tokenizer("Question: " + question + "\n\nAnswer: " + response_k, truncation=True)
-
+        # tokenized_j = tokenizer("Question: " + question + "\n\nAnswer: " + response_j, truncation=True)
+        # tokenized_k = tokenizer("Question: " + question + "\n\nAnswer: " + response_k, truncation=True)
+        # 中文数据集：
+        tokenized_j = tokenizer("问：" + question + "\n\n答：" + response_j, truncation=True)
+        tokenized_k = tokenizer("问：" + question + "\n\n答：" + response_k, truncation=True)
         new_examples["input_ids_j"].append(tokenized_j["input_ids"])
         new_examples["attention_mask_j"].append(tokenized_j["attention_mask"])
         new_examples["input_ids_k"].append(tokenized_k["input_ids"])

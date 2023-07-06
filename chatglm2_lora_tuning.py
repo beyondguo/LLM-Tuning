@@ -93,13 +93,15 @@ def main():
     print(f"\n{len(dataset)=}\n")
     
     # init model
-    with init_empty_weights():
+    with init_empty_weights(): # 似乎没用
+        print('loading init model...')
         model = AutoModel.from_pretrained(
             model_path, trust_remote_code=True, 
             device_map="auto" # 模型不同层会被自动分配到不同GPU上进行计算
             # device_map={'':torch.cuda.current_device()}
         )
     print(model.hf_device_map)
+    print(f'memory_allocated {torch.cuda.memory_allocated()}')
 
     """
     设置了 device_map="auto" 之后
@@ -107,12 +109,23 @@ def main():
     chatglm 2.0 的时候，没有了 lm_head，有一个 output_layer，这个时候可能会分配到两个 device，导致计算loss的时候报错显示
     RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:2 and cuda:0!
     一个解决办法是设置 device_map={'':torch.cuda.current_device()}，进行数据并行，但是这样batchsize只能设置非常小，而且很占显存
-    另一个解决办法是下面这个：
-    手动把 output_layer 设置为跟 input 一样的 device
+    另一个解决办法是: 手动把 output_layer 设置为跟 input 一样的 device
+    然后这里会加载两次模型，可以先加载，调整device_map之后，再把旧模型删掉：https://github.com/pytorch/pytorch/issues/37250#issuecomment-1622972872
     """
-    model.hf_device_map['transformer.output_layer'] = model.hf_device_map['transformer.embedding']
-    model = AutoModel.from_pretrained("THUDM/chatglm2-6b", trust_remote_code=True, device_map=model.hf_device_map)
-    print(model.hf_device_map)
+    
+    if torch.cuda.device_count() > 1:
+        model.hf_device_map['transformer.output_layer'] = model.hf_device_map['transformer.embedding']
+        new_hf_device_map = model.hf_device_map
+        model.cpu()
+        del model
+        torch.cuda.empty_cache()
+        print(f'memory_allocated {torch.cuda.memory_allocated()}')
+        print('loading real model...')
+        model = AutoModel.from_pretrained("THUDM/chatglm2-6b", trust_remote_code=True, device_map=new_hf_device_map)
+        print(model.hf_device_map)
+
+   
+        
     """
     .gradient_checkpointing_enable()
     .enable_input_require_grads()
@@ -136,6 +149,8 @@ def main():
     )
     
     model = get_peft_model(model, peft_config)
+    print('==========print_trainable_parameters===========')
+    model.print_trainable_parameters()
 
 
     # start train
@@ -145,7 +160,7 @@ def main():
         train_dataset=dataset,
         args=training_args,
         callbacks=[TensorBoardCallback(writer)],
-        data_collator=data_collator,
+        data_collator=data_collator
     )
     trainer.train()
     writer.close()
