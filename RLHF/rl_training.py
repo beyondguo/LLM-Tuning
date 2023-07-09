@@ -176,10 +176,12 @@ lora_config = LoraConfig(
     task_type="CAUSAL_LM",
     target_modules=['W_pack']
 )
+print('Loading base model for ppo training...')
 model = AutoModelForCausalLMWithValueHead.from_pretrained(
     config.model_name,
     load_in_8bit=False,
-    device_map={"": current_device},
+    device_map="auto",
+    # device_map={"": current_device},
     peft_config=lora_config,
     trust_remote_code=True
 )
@@ -229,11 +231,12 @@ if ppo_trainer.accelerator.num_processes == 1:
 
 from modeling_baichuan_for_cls import BaichuanForSequenceClassification
 from peft import PeftModel
-
+print('Loading base model for reward model...')
 base_model = BaichuanForSequenceClassification.from_pretrained(
     script_args.base_model_name, num_labels=1, 
     torch_dtype=torch.bfloat16, trust_remote_code=True, 
-    device_map={"": current_device}
+    device_map="auto",
+    # device_map={"": current_device},
 )
 reward_model = PeftModel.from_pretrained(base_model, script_args.reward_model_lora_path)
 # 然后需要一个得到 reward value 的函数
@@ -288,7 +291,7 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
     rewards = [torch.tensor(output[0]["score"] - script_args.reward_baseline) for output in pipe_outputs]
     """
     scores = get_reward_value(texts)
-    rewards = [score - script_args.reward_baseline for score in scores]
+    rewards = [torch.tensor(score - script_args.reward_baseline) for score in scores]
     
     
     # Run PPO step
