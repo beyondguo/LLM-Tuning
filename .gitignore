@@ -7,3 +7,5 @@ __pycache__/
 wandb/
 RLHF/__pycache__/
 RLHF/wandb/
+RLHF/ckps/
+RLHF/weights/

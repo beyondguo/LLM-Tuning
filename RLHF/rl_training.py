@@ -9,11 +9,11 @@ from typing import Optional
 import torch
 from accelerate import Accelerator
 from datasets import load_dataset,load_from_disk
-from peft import LoraConfig
+from peft import LoraConfig,PeftModel
 from tqdm import tqdm
 from transformers import Adafactor, AutoTokenizer, HfArgumentParser, pipeline
 
-from trl import AutoModelForCausalLMWithValueHead, PPOConfig, PPOTrainer, set_seed
+from trl import AutoModelForCausalLMWithValueHead, PPOConfig, PPOTrainer, set_seed, PreTrainedModelWrapper
 from trl.core import LengthSampler
 
 
@@ -30,8 +30,10 @@ class ScriptArguments:
     # models like gpt-neo* models are more suitable.
     # model_name: Optional[str] = field(default="", metadata={"help": "the model name"})
     base_model_name: Optional[str] = field(default="", metadata={"help": "the base model name/path"})
+    merged_sft_model_path: Optional[str] = field(default="", metadata={"help": "merged_sft_model_path"})
     # tokenizer_name: Optional[str] = field(default="", metadata={"help": "the tokenizer name"})
-    reward_model_lora_path: Optional[str] = field(default="", metadata={"help": "the reward lora model name"})
+    sft_model_lora_path: Optional[str] = field(default="", metadata={"help": "the SFT model LoRA path"})
+    reward_model_lora_path: Optional[str] = field(default="", metadata={"help": "the Reward model LoRA path"})
     # reward_model_name: Optional[str] = field(default="", metadata={"help": "the reward model name"})
     log_with: Optional[str] = field(default=None, metadata={"help": "use 'wandb' to log with wandb"})
     learning_rate: Optional[float] = field(default=1.41e-5, metadata={"help": "the learning rate"})
@@ -66,9 +68,63 @@ parser = HfArgumentParser(ScriptArguments)
 script_args: ScriptArguments = parser.parse_args_into_dataclasses()[0]
 # reward_model_name = script_args.reward_model_name
 
+
+# train_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/rl", split="train")
+# train_dataset = load_from_disk('../data/rlhf-reward-single-round-trans_chinese', split='train')
+# train_dataset = train_dataset.select(range(100000))
+
+
+tokenizer = AutoTokenizer.from_pretrained(script_args.base_model_name, trust_remote_code=True)
+# GPT-2 tokenizer has a pad token, but it is not eos_token by default. We need to set it to eos_token.
+# only for this model.
+
+if getattr(tokenizer, "pad_token", None) is None:
+    tokenizer.pad_token = tokenizer.eos_token
+
+# training dataset
+dataset = load_from_disk('../data/rlhf-reward-single-round-trans_chinese')
+dataset = dataset['train']
+original_columns = dataset.column_names
+num_proc = 24
+
+def preprocess_function(examples):
+    new_examples = {
+        "query": [],
+        "input_ids": [],
+    }
+    # for question in examples["question"]:
+    #     query = "Question: " + question + "\n\nAnswer: "
+    #     tokenized_question = tokenizer(query, truncation=True)
+    #     new_examples["query"].append(query)
+    #     new_examples["input_ids"].append(tokenized_question["input_ids"])
+    
+    # rlhf-reward-single-round-trans_chinese:
+    for question in examples["prompt"]:
+        query = "问：" + question + "\n\n答："
+        tokenized_question = tokenizer(query, truncation=True)
+        new_examples["query"].append(query)
+        new_examples["input_ids"].append(tokenized_question["input_ids"])
+    return new_examples
+
+dataset = dataset.map(
+    preprocess_function,
+    batched=True,
+    num_proc=num_proc,
+    remove_columns=original_columns,
+)
+dataset = dataset.filter(lambda x: len(x["input_ids"]) < 512, batched=False)
+dataset.set_format(type="torch")
+
+
+
+def collator(data):
+    return dict((key, [d[key] for d in data]) for key in data[0])
+
+
+
 config = PPOConfig(
     steps=script_args.steps,
-    model_name=script_args.base_model_name,
+    model_name=script_args.merged_sft_model_path,
     learning_rate=script_args.learning_rate,
     log_with=script_args.log_with,
     batch_size=script_args.batch_size,
@@ -83,93 +139,17 @@ config = PPOConfig(
     adap_kl_ctrl=script_args.adap_kl_ctrl,
 )
 
-# train_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/rl", split="train")
-# train_dataset = load_from_disk('../data/rlhf-reward-single-round-trans_chinese', split='train')
-# train_dataset = train_dataset.select(range(100000))
-
-
-tokenizer = AutoTokenizer.from_pretrained(script_args.base_model_name, trust_remote_code=True)
-# GPT-2 tokenizer has a pad token, but it is not eos_token by default. We need to set it to eos_token.
-# only for this model.
-
-if getattr(tokenizer, "pad_token", None) is None:
-    tokenizer.pad_token = tokenizer.eos_token
-
-
-# Below is an example function to build the dataset. In our case, we use the IMDB dataset
-# from the `datasets` library. One should customize this function to train the model on
-# its own dataset.
-def build_dataset(
-    tokenizer,
-    # dataset_name="lvwerra/stack-exchange-paired",
-):
-    """
-    Build dataset for training. This builds the dataset from `load_dataset`, one should
-    customize this function to train the model on its own dataset.
-
-    Args:
-        dataset_name (`str`):
-            The name of the dataset to be loaded.
-
-    Returns:
-        dataloader (`torch.utils.data.DataLoader`):
-            The dataloader for the dataset.
-    """
-
-    # load imdb with datasets
-    # ds = load_dataset(dataset_name, data_dir="data/rl", split="train")
-    ds = load_from_disk('../data/rlhf-reward-single-round-trans_chinese')
-    ds = ds['train']
-    original_columns = ds.column_names
-    num_proc = 24
-
-    def preprocess_function(examples):
-        new_examples = {
-            "query": [],
-            "input_ids": [],
-        }
-        # for question in examples["question"]:
-        #     query = "Question: " + question + "\n\nAnswer: "
-        #     tokenized_question = tokenizer(query, truncation=True)
-        #     new_examples["query"].append(query)
-        #     new_examples["input_ids"].append(tokenized_question["input_ids"])
-        
-        # rlhf-reward-single-round-trans_chinese:
-        for question in examples["prompt"]:
-            query = "问：" + question + "\n\n答："
-            tokenized_question = tokenizer(query, truncation=True)
-            new_examples["query"].append(query)
-            new_examples["input_ids"].append(tokenized_question["input_ids"])
-        return new_examples
-
-    ds = ds.map(
-        preprocess_function,
-        batched=True,
-        num_proc=num_proc,
-        remove_columns=original_columns,
-    )
-    ds = ds.filter(lambda x: len(x["input_ids"]) < 512, batched=False)
-
-    ds.set_format(type="torch")
-    return ds
-
-
-# We retrieve the dataloader by calling the `build_dataset` function.
-dataset = build_dataset(tokenizer)
-
-
-def collator(data):
-    return dict((key, [d[key] for d in data]) for key in data[0])
-
-
 # set seed before initializing value head for deterministic eval
 set_seed(config.seed)
 
 # Now let's build the model, the reference model, and the tokenizer.
 current_device = Accelerator().local_process_index
+print('Loading base model for ppo training...')
 
+# """
+# 这里的实现是在merge了STF LoRA的模型的基础上，再新增一个LoRA，挺费劲的。
 lora_config = LoraConfig(
-    r=16,
+    r=8,
     lora_alpha=32,
     lora_dropout=0.05,
     bias="none",
@@ -177,7 +157,7 @@ lora_config = LoraConfig(
     target_modules=['W_pack']
 )
 print('Loading base model for ppo training...')
-model = AutoModelForCausalLMWithValueHead.from_pretrained(
+ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(
     config.model_name,
     load_in_8bit=False,
     device_map="auto",
@@ -185,7 +165,24 @@ model = AutoModelForCausalLMWithValueHead.from_pretrained(
     peft_config=lora_config,
     trust_remote_code=True
 )
-
+"""
+# 我想改成不需要merge的方式，直接在SFT LoRA的基础上继续训练:
+base_model_for_PPO = AutoModelForCausalLMWithValueHead.from_pretrained(
+    script_args.base_model_name,
+    trust_remote_code=True,
+    torch_dtype=torch.bfloat16, device_map='auto'
+)
+# 加载 SFT LoRA weights
+ppo_model = PeftModel.from_pretrained(
+    base_model_for_PPO, script_args.sft_model_lora_path
+)
+# 让 SFT LoRA 参数可以继续训练
+for name, param in ppo_model.named_parameters():
+    if 'lora' in name:
+        param.requires_grad = True
+# 然而，目前这样无法通过PPOTrainer来训练，已经issue：https://github.com/lvwerra/trl/issues/251
+ppo_model = PreTrainedModelWrapper(ppo_model) # 加了这样的 wrapper 也不行
+"""
 optimizer = None
 if script_args.adafactor:
     optimizer = Adafactor(
@@ -198,7 +195,7 @@ if script_args.adafactor:
 # We then build the PPOTrainer, passing the model, the reference model, the tokenizer
 ppo_trainer = PPOTrainer(
     config,
-    model,
+    ppo_model, # model with value head
     ref_model=None,
     tokenizer=tokenizer,
     dataset=dataset,
@@ -232,13 +229,13 @@ if ppo_trainer.accelerator.num_processes == 1:
 from modeling_baichuan_for_cls import BaichuanForSequenceClassification
 from peft import PeftModel
 print('Loading base model for reward model...')
-base_model = BaichuanForSequenceClassification.from_pretrained(
+base_model_for_RM = BaichuanForSequenceClassification.from_pretrained(
     script_args.base_model_name, num_labels=1, 
     torch_dtype=torch.bfloat16, trust_remote_code=True, 
     device_map="auto",
     # device_map={"": current_device},
 )
-reward_model = PeftModel.from_pretrained(base_model, script_args.reward_model_lora_path)
+reward_model = PeftModel.from_pretrained(base_model_for_RM, script_args.reward_model_lora_path)
 # 然后需要一个得到 reward value 的函数
 def get_reward_value(texts):
     output = reward_model(**tokenizer(texts, return_tensors='pt', padding=True, truncation=True))
