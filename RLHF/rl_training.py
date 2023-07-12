@@ -9,9 +9,9 @@ from typing import Optional
 import torch
 from accelerate import Accelerator
 from datasets import load_dataset,load_from_disk
-from peft import LoraConfig,PeftModel
+from peft import LoraConfig,PeftModel, PeftConfig
 from tqdm import tqdm
-from transformers import Adafactor, AutoTokenizer, HfArgumentParser, pipeline
+from transformers import Adafactor, AutoTokenizer, HfArgumentParser, pipeline, AutoModelForCausalLM
 
 from trl import AutoModelForCausalLMWithValueHead, PPOConfig, PPOTrainer, set_seed, PreTrainedModelWrapper
 from trl.core import LengthSampler
@@ -78,6 +78,7 @@ tokenizer = AutoTokenizer.from_pretrained(script_args.base_model_name, trust_rem
 # GPT-2 tokenizer has a pad token, but it is not eos_token by default. We need to set it to eos_token.
 # only for this model.
 
+# tokenizer.pad_token = tokenizer.eos_token
 if getattr(tokenizer, "pad_token", None) is None:
     tokenizer.pad_token = tokenizer.eos_token
 
@@ -124,7 +125,7 @@ def collator(data):
 
 config = PPOConfig(
     steps=script_args.steps,
-    model_name=script_args.merged_sft_model_path,
+    model_name=script_args.merged_sft_model_path, # 没啥用，不会加载对应模型
     learning_rate=script_args.learning_rate,
     log_with=script_args.log_with,
     batch_size=script_args.batch_size,
@@ -146,7 +147,7 @@ set_seed(config.seed)
 current_device = Accelerator().local_process_index
 print('Loading base model for ppo training...')
 
-# """
+"""
 # 这里的实现是在merge了STF LoRA的模型的基础上，再新增一个LoRA，挺费劲的。
 lora_config = LoraConfig(
     r=8,
@@ -167,22 +168,44 @@ ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(
 )
 """
 # 我想改成不需要merge的方式，直接在SFT LoRA的基础上继续训练:
-base_model_for_PPO = AutoModelForCausalLMWithValueHead.from_pretrained(
+# base_model_for_PPO = AutoModelForCausalLMWithValueHead.from_pretrained(
+#     script_args.base_model_name,
+#     trust_remote_code=True,
+#     torch_dtype=torch.float16, device_map='auto'
+# )
+# # 加载 SFT LoRA weights
+# ppo_model = PeftModel.from_pretrained(
+#     base_model_for_PPO, script_args.sft_model_lora_path
+# )
+# # 让 SFT LoRA 参数可以继续训练
+# for name, param in ppo_model.named_parameters():
+#     if 'lora' in name:
+#         param.requires_grad = True
+# # 然而，目前这样无法通过PPOTrainer来训练，已经issue：https://github.com/lvwerra/trl/issues/251
+# ppo_model = PreTrainedModelWrapper(ppo_model) # 加了这样的 wrapper 也不行
+
+# load the base model
+base_model_for_PPO = AutoModelForCausalLM.from_pretrained(
     script_args.base_model_name,
     trust_remote_code=True,
-    torch_dtype=torch.bfloat16, device_map='auto'
+    torch_dtype=torch.bfloat16, 
+    device_map='auto'
+    )
+# install the lora modules
+base_model_for_PPO_with_sft_lora = PeftModel.from_pretrained(
+    base_model_for_PPO, 
+    script_args.sft_model_lora_path
+    )
+# wrap with the AutoModelForCausalLMWithValueHead wrapper
+ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(
+    base_model_for_PPO_with_sft_lora
 )
-# 加载 SFT LoRA weights
-ppo_model = PeftModel.from_pretrained(
-    base_model_for_PPO, script_args.sft_model_lora_path
-)
-# 让 SFT LoRA 参数可以继续训练
+# make the lora modules trainable
 for name, param in ppo_model.named_parameters():
     if 'lora' in name:
         param.requires_grad = True
-# 然而，目前这样无法通过PPOTrainer来训练，已经issue：https://github.com/lvwerra/trl/issues/251
-ppo_model = PreTrainedModelWrapper(ppo_model) # 加了这样的 wrapper 也不行
-"""
+# """
+
 optimizer = None
 if script_args.adafactor:
     optimizer = Adafactor(
@@ -231,7 +254,8 @@ from peft import PeftModel
 print('Loading base model for reward model...')
 base_model_for_RM = BaichuanForSequenceClassification.from_pretrained(
     script_args.base_model_name, num_labels=1, 
-    torch_dtype=torch.bfloat16, trust_remote_code=True, 
+    trust_remote_code=True, 
+    torch_dtype=torch.bfloat16, 
     device_map="auto",
     # device_map={"": current_device},
 )
@@ -248,11 +272,14 @@ def get_reward_value(texts):
 # the `generate` function of the trained model.
 generation_kwargs = {
     # "min_length": -1,
-    "top_k": 0.0,
-    "top_p": 1.0,
+    # "top_k": 0.0,
+    "top_p": 0.95,
     "do_sample": True,
-    "pad_token_id": tokenizer.pad_token_id,
-    "eos_token_id": 100_000,
+    "remove_invalid_values": True,
+    # "pad_token_id": tokenizer.pad_token_id,
+    # "eos_token_id": tokenizer.eos_token_id,
+    "max_new_tokens": 512
+    # "eos_token_id": 100_000, # why？
 }
 output_min_length = 32
 output_max_length = script_args.output_max_length
@@ -272,28 +299,51 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         break
 
     question_tensors = batch["input_ids"]
-
-    response_tensors = ppo_trainer.generate(
-        question_tensors,
-        return_prompt=False,
-        length_sampler=output_length_sampler,
-        **generation_kwargs,
-    )
-    batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
-
-    # Compute sentiment score
-    texts = [q + r for q, r in zip(batch["query"], batch["response"])]
-    """下面两行是使用pipeline来做，但我这里不采用这种方式
-    pipe_outputs = sentiment_pipe(texts, **sent_kwargs)
-    rewards = [torch.tensor(output[0]["score"] - script_args.reward_baseline) for output in pipe_outputs]
-    """
-    scores = get_reward_value(texts)
-    rewards = [torch.tensor(score - script_args.reward_baseline) for score in scores]
     
-    
-    # Run PPO step
-    stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
-    ppo_trainer.log_stats(stats, batch, rewards)
+    try:
+        """
+        generate这一步经常会报一个奇奇怪怪的bug：
+        RuntimeError: probability tensor contains either inf, nan or element < 0
+        主要是在model.generate的时候设置了 do_sample=True 就容易报错，但是报错具有随机性，可能在不同的iteration报
+        关闭 do_sample=True 就不会报错。
+        可能有用的issue：
+        https://github.com/huggingface/transformers/issues/15169
+        https://github.com/huggingface/transformers/issues/23413
+        https://github.com/huggingface/transformers/issues/22914
+        
+        目前可能的解决办法：
+        1. 不使用随机采用： do_sample=False，这个基本不会报错，但是感觉影响PPO的性能
+        2. do_sample=True 的同时，设置 remove_invalid_values=True 参数，目前观察下来还没有报错
+        
+        """
+        response_tensors = ppo_trainer.generate(
+            question_tensors,
+            return_prompt=False,
+            # length_sampler=output_length_sampler,  # 这个参数，跟 generation_kwargs 中的 max_new_tokens 只用设置一个
+            **generation_kwargs,
+        )
+        batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
 
-    if script_args.save_freq and epoch and epoch % script_args.save_freq == 0:
-        ppo_trainer.save_pretrained(script_args.output_dir + f"step_{epoch}")
+        # Compute sentiment score
+        texts = [q + r for q, r in zip(batch["query"], batch["response"])]
+        """下面两行是使用pipeline来做，但我这里不采用这种方式
+        pipe_outputs = sentiment_pipe(texts, **sent_kwargs)
+        rewards = [torch.tensor(output[0]["score"] - script_args.reward_baseline) for output in pipe_outputs]
+        """
+        scores = get_reward_value(texts)
+        rewards = [torch.tensor(score - script_args.reward_baseline) for score in scores]
+        
+        
+        # Run PPO step
+        stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
+        ppo_trainer.log_stats(stats, batch, rewards)
+
+        if script_args.save_freq and epoch and epoch % script_args.save_freq == 0:
+            ppo_trainer.save_pretrained(script_args.output_dir + f"step_{epoch}")
+            
+    except Exception as e:
+        print(e)
+        print('---------------------')
+        print(question_tensors)
+        print('---------------------')
+        break
