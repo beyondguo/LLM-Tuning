@@ -57,11 +57,11 @@ class ScriptArguments:
     seed: Optional[int] = field(default=0, metadata={"help": "the seed"})
     steps: Optional[int] = field(default=20000, metadata={"help": "number of epochs"})
     init_kl_coef: Optional[float] = field(
-        default=0.2,
+        default=0.5,
         metadata={"help": "Initial KL penalty coefficient (used for adaptive and linear control)"},
     )
 
-    adap_kl_ctrl: Optional[bool] = field(default=True, metadata={"help": "Use adaptive KL control, otherwise linear"})
+    adap_kl_ctrl: Optional[bool] = field(default=False, metadata={"help": "Use adaptive KL control, otherwise linear"})
 
 
 parser = HfArgumentParser(ScriptArguments)
@@ -216,10 +216,14 @@ if script_args.adafactor:
         lr=config.learning_rate,
     )
 # We then build the PPOTrainer, passing the model, the reference model, the tokenizer
+ref_model = AutoModelForCausalLMWithValueHead.from_pretrained(
+    script_args.merged_sft_model_path,
+    trust_remote_code=True
+)
 ppo_trainer = PPOTrainer(
     config,
     ppo_model, # model with value head
-    ref_model=None,
+    ref_model=ref_model,
     tokenizer=tokenizer,
     dataset=dataset,
     data_collator=collator,
@@ -273,9 +277,11 @@ def get_reward_value(texts):
 generation_kwargs = {
     # "min_length": -1,
     # "top_k": 0.0,
-    "top_p": 0.95,
+    # "top_p": 0.95,
+    "repetition_penalty": 1.1,
     "do_sample": True,
-    "remove_invalid_values": True,
+    "begin_suppress_tokens": [tokenizer.eos_token_id],
+    # "remove_invalid_values": True,
     # "pad_token_id": tokenizer.pad_token_id,
     # "eos_token_id": tokenizer.eos_token_id,
     "max_new_tokens": 512
@@ -313,7 +319,27 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         
         目前可能的解决办法：
         1. 不使用随机采用： do_sample=False，这个基本不会报错，但是感觉影响PPO的性能
-        2. do_sample=True 的同时，设置 remove_invalid_values=True 参数，目前观察下来还没有报错
+        2. do_sample=True 的同时，设置 remove_invalid_values=True 参数...还是会报错...奇了怪，而且是报错之后，模型似乎就崩了，一直输出inf,nan了
+        
+        update:
+        发现似乎是由于模型在迭代之后，开始输出空值，而reward却很大，导致模型越学越坏，直接崩了，后面全输出空
+        
+        - 百川-base之前推荐的是设置repetition_penalty=1.1，前面没有设置，导致输出很容易重复，而这种输出居然也可以得高分，
+        因此这里改成一样的配置，目前观察下来有了一些缓解，但后面还是会越学越坏；
+        
+        - 尝试设置 ref_model,使用前面merge好的sft模型作为ref model，没啥用；
+        
+        - 尝试设置adap_kl_ctrl=False,没啥用；
+        
+        - 继续观察，发现当某一次回复为空得到很高的reward之后(得来0.8 的高分，其他的都是0.6的水平)，下一次生成的时候就挂了；
+        
+        - 尝试降低learning rate，从 1.4e-5 降低到 1e-5。这个似乎有些效果，可以延缓模型崩溃，但渐渐地回复会越来越短，最终输出空值，属于慢性死亡了。。。
+        
+        - 尝试提高 init_kl_coef，从0.2到0.5，也不管用；
+        
+        - 继续尝试设置 begin_suppress_tokens 参数，禁止在开头的时候生成 eos token... ！！这是目前最有效的办法了 模型基本不崩了。
+        
+        其实可以发现，主要是reward model太差了，导致对某些不好的输出类型产生了高reward，然后模型就越学越差然后崩了。所以可能问题关键就在于reward model的质量吧。
         
         """
         response_tensors = ppo_trainer.generate(
@@ -326,13 +352,17 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
 
         # Compute sentiment score
         texts = [q + r for q, r in zip(batch["query"], batch["response"])]
+
         """下面两行是使用pipeline来做，但我这里不采用这种方式
         pipe_outputs = sentiment_pipe(texts, **sent_kwargs)
         rewards = [torch.tensor(output[0]["score"] - script_args.reward_baseline) for output in pipe_outputs]
         """
         scores = get_reward_value(texts)
         rewards = [torch.tensor(score - script_args.reward_baseline) for score in scores]
-        
+        for q, r, s in zip(batch["query"], batch["response"], scores):
+            print(epoch,'query:',q)
+            print('response:',r)
+            print('score:',s)
         
         # Run PPO step
         stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
@@ -342,8 +372,9 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
             ppo_trainer.save_pretrained(script_args.output_dir + f"step_{epoch}")
             
     except Exception as e:
-        print(e)
         print('---------------------')
+        print(e)
+        print(epoch)
         print(question_tensors)
         print('---------------------')
         break
