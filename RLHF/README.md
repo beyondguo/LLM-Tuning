@@ -13,7 +13,7 @@
 
 > 注：我这里的训练，并不是为了得到一个综合性能多么好的 Chat 模型（这些事儿留给专业机构团队来做），而是走通整个 RLHF 的过程，了解其中可能的技术难点，感受强化学习和有监督学习的区别，从而获得大模型“调教”的一手经验。
 
-首先，我要感谢 Huggingface 团队开源的 Stack-LLaMA（https://huggingface.co/blog/stackllama）以及相关教程，我这里整个步骤，都是参考这个教程进行的，然后针对 baichuan 做了定制化的适配，并全部改成基于 LoRA 来训练，以节省训练开销。
+首先，我要感谢 Huggingface 团队开源的 Stack-LLaMA（https://huggingface.co/blog/stackllama）以及相关教程，我这里整个步骤，都是参考这个教程进行的，然后针对 baichuan 做了定制化的适配，并全部改成基于 LoRA 来训练。
 
 好，不废话了，咱们开始吧！
 
@@ -30,6 +30,11 @@
 - **原始 baichuan-7B**: "我就是你，我是你自己。(自性)"
 - **ChatBaichun-HC3**: "我是一个计算机程序，由一个人或一群人编写。我的目的是帮助人们解决问题和回答问题。"
 
+**理清关系**：
+- 我们称 baichuan-7B 为 `base-model` ；
+- 训练时，我们需要加载一个 language model head，即成为 `base-model-ForCausalLM` ；
+- 经过 SFT 的训练之后，我们得到对应的 LoRA 模型记为 `sft-lora-adapter` ；
+- 当我们要使用 SFT 的模型时，就是把 `sft-lora-adapter` 加载到 `base-model-ForCausalLM` 上，加载之后，我们记为 `sft-model`。
 
 ## 2. RM：训练一个奖励模型
 奖励模型，就是一个打分模型，能够**判断模型对于同一个 prompt 的不同输出，哪个更好，哪个更差**。
@@ -40,11 +45,107 @@
 - 原始英文 reward 数据集：https://huggingface.co/datasets/yitingxie/rlhf-reward-datasets
 - 翻译成中文的 reward 数据集：https://huggingface.co/datasets/beyond/rlhf-reward-single-round-trans_chinese
 
-...
+
+这个数据集中，每个prompt都对应一个"chosen"字段和一个"rejected"字段，分别代表一个更好的回答和一个更差的回答。
+
+**大致思路**：
+
+要训练打分模型，我们可以直接使用 sigmoid 二分类的方式，给 `base-model` 添加一个 **num_labels=1** 的 **classification head**，即 `base-model-ForSequenceClassification`。这相当于添加了一个 output-dim=1 的 linear 层，模型的输出就一个一维的 logits，这个 logits 经过 sigmoid 函数标准化之后就可以作为分数了。模型的输入实际上是 `prompt+answer`。
+
+
+
+然后，我们的 chosen 回答和 rejected 回答都是成对输入的，我们希望前者得到的分数比后者的分数更高，二者的差别越大越好。因此，我们可以设计一个特殊的损失函数：
+```python
+def compute_loss(self, model, inputs, return_outputs=False):
+    rewards_j = model(input_ids=inputs["input_ids_j"], attention_mask=inputs["attention_mask_j"])[0]
+    rewards_k = model(input_ids=inputs["input_ids_k"], attention_mask=inputs["attention_mask_k"])[0]
+    loss = -nn.functional.logsigmoid(rewards_j - rewards_k).mean()
+    if return_outputs:
+        return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}
+    return loss
+```
+其中 j 代表的是包含 chosen 回答的输入，k 代表的是包含 rejected 回答的输入，模型分别对二者计算，得到各自的 logits，二者的差值，经过logsigmoid处理，得到损失函数。用这个损失，来对模型进行优化。
+
+
+当然，由于我们设计了特殊的双输入输出结构，我们还需要做一些其他的修改，比如自定义 compute_metrics 函数来监控训练过程中的准确率，设计特殊的 data collator 来满足这种数据格式，这些内容都在 `reward_modeling.py` 中实现并进行了详细地注释。
+
+下面，我们可以使用这样的命令，来训练 reward model：
+```
+# train_rm.sh
+CUDA_VISIBLE_DEVICES=0,1,2,3 python reward_modeling.py \
+    --model_name baichuan-inc/baichuan-7B \
+    --lora_target_models W_pack \
+    --num_train_epochs 2 \
+    --eval_steps 200 \
+    --save_steps 50 \
+    --per_device_train_batch_size 10 \
+    --per_device_eval_batch_size 16 \
+    --train_subset -1 \
+    --eval_subset -1 \
+    --max_length 1000
+```
+下面是训练过程中的 wandb 记录：
+```
+100%|███████████████████████████████████████████████████████████| 3972/3972 [7:06:28<00:00,  6.44s/it]
+
+wandb: 
+wandb: Run history:
+wandb:                  eval/accuracy ▁▄▅▆▆▆▆▇▇▇▇▇▇▇▇▇▇███████████████████████
+wandb:                      eval/loss █▆▅▄▄▃▃▃▃▂▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                    train/epoch ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
+wandb:              train/global_step ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
+wandb:            train/learning_rate ███▇▇▇▇▇▇▆▆▆▆▆▆▅▅▅▅▅▄▄▄▄▄▄▃▃▃▃▃▂▂▂▂▂▂▁▁▁
+wandb:                     train/loss █▇▆▃▅▇▃▅▅▆▆▄▅▆▃▅▃▂▄▂▂▃▄▃▃▅▁▂▄▅▃▅▆▅▃▄▄▅▃▄
+
+wandb: Run summary:
+wandb:                  eval/accuracy 0.71892
+wandb:                      eval/loss 0.54986
+wandb:                   eval/runtime 281.5312
+wandb:        eval/samples_per_second 17.742
+wandb:          eval/steps_per_second 1.112
+wandb:                    train/epoch 2.0
+wandb:              train/global_step 3972
+wandb:            train/learning_rate 0.0
+wandb:                     train/loss 0.5684
+wandb:               train/total_flos 0.0
+wandb:               train/train_loss 0.56024
+```
+可见最终我们的 reward model 在验证集上的准确率达到了 71%，属于一个还不错的结果了。
+
+**理清关系**：
+- 依然使用 baichuan-7B 作为 `base-model` ；
+- 训练时，我们需要加载一个 1-label classificaition model head，即成为 `base-model-ForSequenceClassification` ；
+- 经过 RM 的训练之后，我们得到对应的 LoRA 模型记为 `rm-lora-adapter` ；
+- 当我们要使用 RM 的模型时，就是把 `rm-lora-adapter` 加载到 `base-model-ForSequenceClassification` 上，加载之后，我们记为 `reward-model`。
+
 
 
 ## 3. RL：基于 PPO 的强化学习过程
-...
+好了，现在咱们已经拥有了一个 SFT 版本的模型和一个 RM 模型，是时候让 AI helps AI 了！（RM helps SFT model）
+
+
+**大概思路**：
+首先看看在强化学习这里，我们需要哪些模型：
+- `sft-model`，它已经具备了基本的 chat 能力，现在我们希望借助 PPO 方法来进一步提高它，我们记在 PPO 过程中不断提高的这个模型为 `ppo-model`；
+- `reward-model`，它可以帮我们对 `ppo-model` 的不同输出进行打分，从而对 PPO 过程提供指导；
+- reference model `ref-model`，它是一个正则化的作用，希望经过优化后的 `ppo-model` 不要跟 `ref-model` 差别太大。我们可以直接使用 `sft-model` 作为 `refl-model`。
+
+
+那 `ppo-model` 模型结构上跟 `sft-model` 一模一样吗？也不是，还需要一个小小的修改——添加一个 value head。
+通过 value head，模型生成的每个 token 都对应一个 value，这代表当前每个 token 的某个分值；
+然后，我们还要计算每个 token 理想的分值，这就要用到前面的 reward-model 给出的一个 score，以及 ref-model 跟 ppo-model 对比时，产生的 kl 损失，
+
+
+。。。
+
+
+在原始的 Stack-LLaMA 教程中，作者是把 `sft-lora-adapter` 的参数直接合并到 `base-model-ForCausalLM` 上，包含保存成单个模型，然后在
+
+
+
+
+
+
 
 
 - 输入: 你好啊,给我用用于翻译一下:娃哈哈真好喝!
@@ -92,7 +193,9 @@
 主要参考：
 - https://huggingface.co/blog/stackllama
 - https://github.com/lvwerra/trl/tree/main/examples/stack_llama/scripts
-- 一些疑问：https://github.com/lvwerra/trl/issues/492
+- 一些跟trl作者的讨论：
+  - 关于 reward model：https://github.com/lvwerra/trl/issues/492
+  - 关于 peft model：https://github.com/lvwerra/trl/issues/536
 
 
 Reward Modeling:
@@ -111,41 +214,5 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python reward_modeling.py \
     --max_length 1000
 ```
 
-```
-100%|███████████████████████████████████████████████████████████| 3972/3972 [7:06:28<00:00,  6.44s/it]
-Saving last checkpoint of the model
-wandb: Waiting for W&B process to finish... (success).
-wandb: 
-wandb: Run history:
-wandb:                  eval/accuracy ▁▄▅▆▆▆▆▇▇▇▇▇▇▇▇▇▇███████████████████████
-wandb:                      eval/loss █▆▅▄▄▃▃▃▃▂▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:                   eval/runtime ▂▁▂▁▂▂▂▃▂▂▃▃▁▇▇█▇▇▇▇▇█▇▇▇▇▇▇█▇██▇▇████▇█
-wandb:        eval/samples_per_second ▇█▇█▇▇▇▆▆▇▆▆█▂▂▁▂▂▂▁▂▁▂▂▂▂▂▂▁▂▁▁▁▂▁▁▁▁▂▁
-wandb:          eval/steps_per_second ███████████▆█▃▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:                    train/epoch ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:              train/global_step ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:            train/learning_rate ███▇▇▇▇▇▇▆▆▆▆▆▆▅▅▅▅▅▄▄▄▄▄▄▃▃▃▃▃▂▂▂▂▂▂▁▁▁
-wandb:                     train/loss █▇▆▃▅▇▃▅▅▆▆▄▅▆▃▅▃▂▄▂▂▃▄▃▃▅▁▂▄▅▃▅▆▅▃▄▄▅▃▄
-wandb:               train/total_flos ▁
-wandb:               train/train_loss ▁
-wandb:            train/train_runtime ▁
-wandb: train/train_samples_per_second ▁
-wandb:   train/train_steps_per_second ▁
-wandb: 
-wandb: Run summary:
-wandb:                  eval/accuracy 0.71892
-wandb:                      eval/loss 0.54986
-wandb:                   eval/runtime 281.5312
-wandb:        eval/samples_per_second 17.742
-wandb:          eval/steps_per_second 1.112
-wandb:                    train/epoch 2.0
-wandb:              train/global_step 3972
-wandb:            train/learning_rate 0.0
-wandb:                     train/loss 0.5684
-wandb:               train/total_flos 0.0
-wandb:               train/train_loss 0.56024
-wandb:            train/train_runtime 25595.2124
-wandb: train/train_samples_per_second 1.552
-wandb:   train/train_steps_per_second 0.155
-```
+
 
