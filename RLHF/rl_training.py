@@ -148,7 +148,7 @@ current_device = Accelerator().local_process_index
 print('Loading base model for ppo training...')
 
 """
-# 这里的实现是在merge了STF LoRA的模型的基础上，再新增一个LoRA，挺费劲的。
+下面是原版 StackLLaMA 的实现，是在merge了STF LoRA的模型的基础上，再新增一个LoRA，挺费劲的。
 lora_config = LoraConfig(
     r=8,
     lora_alpha=32,
@@ -167,22 +167,7 @@ ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(
     trust_remote_code=True
 )
 """
-# 我想改成不需要merge的方式，直接在SFT LoRA的基础上继续训练:
-# base_model_for_PPO = AutoModelForCausalLMWithValueHead.from_pretrained(
-#     script_args.base_model_name,
-#     trust_remote_code=True,
-#     torch_dtype=torch.float16, device_map='auto'
-# )
-# # 加载 SFT LoRA weights
-# ppo_model = PeftModel.from_pretrained(
-#     base_model_for_PPO, script_args.sft_model_lora_path
-# )
-# # 让 SFT LoRA 参数可以继续训练
-# for name, param in ppo_model.named_parameters():
-#     if 'lora' in name:
-#         param.requires_grad = True
-# # 然而，目前这样无法通过PPOTrainer来训练，已经issue：https://github.com/lvwerra/trl/issues/251
-# ppo_model = PreTrainedModelWrapper(ppo_model) # 加了这样的 wrapper 也不行
+# 下面改成不需要merge的方式，直接在SFT LoRA的基础上继续训练:
 
 # load the base model
 base_model_for_PPO = AutoModelForCausalLM.from_pretrained(
@@ -204,7 +189,7 @@ ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(
 for name, param in ppo_model.named_parameters():
     if 'lora' in name:
         param.requires_grad = True
-# """
+
 
 optimizer = None
 if script_args.adafactor:
@@ -327,11 +312,7 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         - 百川-base之前推荐的是设置repetition_penalty=1.1，前面没有设置，导致输出很容易重复，而这种输出居然也可以得高分，
         因此这里改成一样的配置，目前观察下来有了一些缓解，但后面还是会越学越坏；
         
-        - 尝试设置 ref_model,使用前面merge好的sft模型作为ref model，没啥用；
-        
-        - 尝试设置adap_kl_ctrl=False,没啥用；
-        
-        - 继续观察，发现当某一次回复为空得到很高的reward之后(得来0.8 的高分，其他的都是0.6的水平)，下一次生成的时候就挂了；
+        继续观察，发现当某一次回复为空得到很高的reward之后(得来0.8 的高分，其他的都是0.6的水平)，下一次生成的时候就挂了；
         
         - 尝试降低learning rate，从 1.4e-5 降低到 1e-5。这个似乎有些效果，可以延缓模型崩溃，但渐渐地回复会越来越短，最终输出空值，属于慢性死亡了。。。
         
