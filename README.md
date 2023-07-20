@@ -2,6 +2,7 @@
 
 
 💻 可复现的小项目：
+- [**baichuan-RLHF**：基于 LoRA 的 RLHF 教程，让 baichaun 活泼如网友！(New!🔥)](/RLHF/)
 - [**ChatBaichuan**：基于 HC3 数据集让 百川大模型（baichuan-7B）有对话能力！](/projects/ChatBaichuan-HC3/)
 - [【娱乐向】**RulaiGPT**：如来\~诶，它真来了吗？如\~来\~（拍桌！）](/projects/RulaiGPT/)
 
@@ -12,17 +13,19 @@
 
 
 🤖 目前支持：
-- 清华 [ChatGLM2-6B](https://huggingface.co/THUDM/chatglm2-6b) 的 LoRA 微调 (New!🔥)
-- 百川智能 [baichuan-7B](https://huggingface.co/baichuan-inc/baichuan-7B) 的 LoRA 微调
+- 百川智能 [baichuan-7B](https://huggingface.co/baichuan-inc/baichuan-7B) 的 LoRA 微调和 **RLHF** 全流程
+- 清华 [ChatGLM2-6B](https://huggingface.co/THUDM/chatglm2-6b) 的 LoRA 微调 
 - 清华 [ChatGLM-6B](https://huggingface.co/THUDM/chatglm-6b) 的 LoRA 微调
 
 
-🎯 两行代码开启训练：
+🎯 两行代码开启 LoRA 训练：
 - 数据集分词预处理：`sh tokenize.sh`，对比不同的 LLM，需在 tokenize.sh 文件里切换 model_checkpoint 参数
 - 开启 LoRA 微调：`sh train.sh`，对于不同的 LLM，需切换不同的 python 文件来执行：
     - ChatGLM-6B 应使用 `chatglm_lora_tuning.py`
     - ChatGLM2-6B 应使用 `chatglm2_lora_tuning.py`
     - baichuan-7B 应使用 `baichuan_lora_tuning.py`
+
+🎯 手把手的 RLHF 教程：见 [LoRA-based-RLHF](/RLHF/)
 
 ---
 
