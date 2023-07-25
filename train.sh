@@ -1,18 +1,49 @@
-CUDA_VISIBLE_DEVICES=0,1 python chatglm2_lora_tuning.py \
-    --tokenized_dataset sentiment_comp_ie_chatglm2 \
+CUDA_VISIBLE_DEVICES=2,3 python internlm_lora_tuning.py \
+    --tokenized_dataset rulai_enhance_internlm-chat-7b-8k \
     --lora_rank 4 \
-    --per_device_train_batch_size 1 \
-    --gradient_accumulation_steps 10 \
+    --per_device_train_batch_size 2 \
+    --gradient_accumulation_steps 1 \
     --num_train_epochs 2 \
-    --save_steps 200 \
+    --save_steps 10 \
     --save_total_limit 2 \
     --learning_rate 1e-4 \
     --fp16 \
     --remove_unused_columns false \
-    --logging_steps 50 \
+    --logging_steps 10 \
     --output_dir weights/temp \
     --report_to none
-    # --output_dir weights/sentiment_comp_ie_chatglm2
+
+# CUDA_VISIBLE_DEVICES=0,1 python chatglm2_lora_tuning.py \
+#     --tokenized_dataset sentiment_comp_ie_chatglm2 \
+#     --lora_rank 4 \
+#     --per_device_train_batch_size 1 \
+#     --gradient_accumulation_steps 10 \
+#     --num_train_epochs 2 \
+#     --save_steps 200 \
+#     --save_total_limit 2 \
+#     --learning_rate 1e-4 \
+#     --fp16 \
+#     --remove_unused_columns false \
+#     --logging_steps 50 \
+#     --output_dir weights/temp \
+#     --report_to none
+#     # --output_dir weights/sentiment_comp_ie_chatglm2
+
+
+# CUDA_VISIBLE_DEVICES=3 python chatglm_lora_tuning.py \
+#     --tokenized_dataset sentiment_comp_ie_shuffled \
+#     --lora_rank 4 \
+#     --per_device_train_batch_size 8 \
+#     --gradient_accumulation_steps 1 \
+#     --num_train_epochs 2 \
+#     --save_steps 200 \
+#     --save_total_limit 2 \
+#     --learning_rate 1e-4 \
+#     --fp16 \
+#     --remove_unused_columns false \
+#     --logging_steps 50 \
+#     --output_dir weights/temp
+
 
 # CUDA_VISIBLE_DEVICES=3 python chatglm_lora_tuning.py \
 #     --tokenized_dataset sentiment_comp_ie_shuffled \
