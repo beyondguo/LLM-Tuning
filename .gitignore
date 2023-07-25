@@ -9,3 +9,4 @@ RLHF/__pycache__/
 RLHF/wandb/
 RLHF/ckps/
 RLHF/weights/
+web_demo/resource
