@@ -14,7 +14,7 @@ import os
 from pprint import pprint as print
 
 model_checkpoint = "internlm/internlm-chat-7b"
-model_checkpoint = "internlm/internlm-chat-7b-8k"
+# model_checkpoint = "internlm/internlm-chat-7b-8k"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, trust_remote_code=True)
 
 

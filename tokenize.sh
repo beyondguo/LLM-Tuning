@@ -1,9 +1,9 @@
 CUDA_VISIBLE_DEVICES=0 python tokenize_dataset_rows.py \
-    --model_checkpoint internlm/internlm-chat-7b-8k \
-    --input_file rulai_enhance.json \
-    --prompt_key q \
-    --target_key a \
-    --save_name rulai_enhance_internlm-chat-7b-8k \
+    --model_checkpoint internlm/internlm-chat-7b \
+    --input_file aspect_sentiment_better.json \
+    --prompt_key prompt \
+    --target_key output \
+    --save_name aspect_sentiment_better-internlm-chat-7b \
     --max_seq_length 2000 \
     --skip_overlength False
 

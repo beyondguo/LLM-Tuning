@@ -1,17 +1,17 @@
-CUDA_VISIBLE_DEVICES=2,3 python internlm_lora_tuning.py \
-    --tokenized_dataset rulai_enhance_internlm-chat-7b-8k \
-    --lora_rank 4 \
-    --per_device_train_batch_size 2 \
+CUDA_VISIBLE_DEVICES=1,2,3 python internlm_lora_tuning.py \
+    --tokenized_dataset aspect_sentiment_better-internlm-chat-7b \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 1 \
     --num_train_epochs 2 \
-    --save_steps 10 \
+    --save_steps 100 \
     --save_total_limit 2 \
     --learning_rate 1e-4 \
     --fp16 \
     --remove_unused_columns false \
-    --logging_steps 10 \
-    --output_dir weights/temp \
-    --report_to none
+    --logging_steps 100 \
+    --output_dir weights/aspect_sentiment_better-internlm-chat-7b \
+    --report_to wandb
 
 # CUDA_VISIBLE_DEVICES=0,1 python chatglm2_lora_tuning.py \
 #     --tokenized_dataset sentiment_comp_ie_chatglm2 \
