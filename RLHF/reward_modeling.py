@@ -328,7 +328,7 @@ def compute_metrics(eval_pred):
     # Q: model的输出不是一个score吗，为什么这里可以使用argmax？
     # A: 下面的 compute_loss 中定义了新的model forward 方法，即会接受两个输入产生两个输出
     # Trainer 中会把这种两个输出拼起来，从而得到一个在axis=0维度上有两项的形式，因此argmax就是看哪一项更大
-    # 具体可以参考 Trainer 中对 涉及到 compute_loss/logits/prediction_step 的部分，以及 _gather_and_numpify 方法
+    # 具体可以参考 Trainer 中对 涉及到 compute_loss/logits/training_step/prediction_step 的部分，以及 _gather_and_numpify 方法
     predictions = np.argmax(predictions, axis=0)
     labels = np.zeros(predictions.shape)
     return accuracy.compute(predictions=predictions, references=labels)
