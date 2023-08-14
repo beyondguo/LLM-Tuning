@@ -15,9 +15,9 @@
 #     --run_name original-0809-gby
 
 
-WANDB_PROJECT=DCAI-ABSA-InternLM CUDA_VISIBLE_DEVICES=0,1,2,3 python internlm_lora_tuning.py \
-    --tokenized_train_dataset aspect_sentiment_train_base_10k-internlm-chat-7b \
-    --tokenized_eval_dataset aspect_sentiment_test_base-internlm-chat-7b \
+WANDB_PROJECT=DCAI-ABSA-InternLM CUDA_VISIBLE_DEVICES=0 python internlm_lora_tuning.py \
+    --tokenized_train_dataset aspect_sentiment_train_orig_10k-internlm-chat-7b \
+    --tokenized_eval_dataset aspect_sentiment_test_orig-internlm-chat-7b \
     --eval_size 2000 \
     --lora_rank 8 \
     --per_device_train_batch_size 4 \
@@ -32,9 +32,9 @@ WANDB_PROJECT=DCAI-ABSA-InternLM CUDA_VISIBLE_DEVICES=0,1,2,3 python internlm_lo
     --fp16 \
     --remove_unused_columns false \
     --logging_steps 100 \
-    --output_dir weights/aspect_sentiment_train_base_10k-internlm-chat-7b \
+    --output_dir weights/aspect_sentiment_train_orig_10k-internlm-chat-7b \
     --report_to wandb \
-    --run_name baseline-eval2k-0810-gby
+    --run_name original-eval2k-0811-gby
 
 
 # CUDA_VISIBLE_DEVICES=0,1 python chatglm2_lora_tuning.py \

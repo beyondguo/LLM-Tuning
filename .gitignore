@@ -10,3 +10,6 @@ RLHF/wandb/
 RLHF/ckps/
 RLHF/weights/
 web_demo/resource
+eval/
+evaluate.ipynb
+my_templates.py
