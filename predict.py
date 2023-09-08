@@ -2,7 +2,6 @@
 
 import os
 import json
-from my_templates import generate_prompt
 from tqdm import tqdm
 from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
@@ -31,20 +30,21 @@ with open(args.data_path, 'r') as f:
     
 
 
-def predict(texts, mode='baseline'):
-    if isinstance(texts, str):
-        texts = [texts]
-    assert isinstance(texts, list), 'input should be list of text'
+def predict(prompts):
+    if isinstance(prompts, str):
+        prompts = [prompts]
+    assert isinstance(prompts, list), 'input should be list of text'
 
-    prompts = [generate_prompt(text, mode) for text in texts]
-    # 不加其他参数，不设置 padding，不设置 return pt。这样可以使得每条都保留自己的长度
-    inputs = tokenizer(prompts, max_length=1024, truncation=True)
+    # # 不加其他参数，不设置 padding，不设置 return pt。这样可以使得每条都保留自己的长度
+    # inputs = tokenizer(prompts, max_length=1024, truncation=True)
     # 再来一次带 padding 的 tokenization
+    tokenizer.padding_side = 'left'
     input_tensors = tokenizer(prompts, max_length=1024, padding=True, truncation=True, return_tensors='pt')
+    prompt_length = input_tensors.input_ids.shape[1]
     input_tensors.to('cuda:0')
-
+    
     # 下面是 InternLM 专属 generate 参数
-    outputs = model.generate(**input_tensors, max_new_tokens=512,
+    outputs = model.generate(**input_tensors, max_new_tokens=200, # 按照指定格式，输出差不多就这么长，多了就不用输出了
                             temperature=0.8,
                             top_p=0.8,
                             eos_token_id=(2, 103028),
@@ -52,7 +52,8 @@ def predict(texts, mode='baseline'):
     # 过滤掉 prompt 部分
     real_outputs = []
     for i,output in enumerate(outputs):
-        output = output[len(inputs.input_ids[i]):] 
+        # output = output[len(inputs.input_ids[i]):]
+        output = output[prompt_length:]
         real_outputs.append(output)
     results = tokenizer.batch_decode(real_outputs, skip_special_tokens=True)
 
@@ -67,6 +68,12 @@ for i in tqdm(range(len(prompts)//bs + 1)):
     if batch:
         batch_results= predict(batch)
         predicted_results.extend(batch_results)
+        # 打印着看看
+        for prompt, each in zip(batch[:2], batch_results[:2]):
+            print('\n*****prompt******')
+            print(prompt)
+            print(' ===prediction===>')
+            print(each)
 
 
 name = args.lora_path.split('/')[-1]

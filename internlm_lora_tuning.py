@@ -27,18 +27,12 @@ class FinetuneArguments:
     model_path: str = field(default=" ")
     lora_rank: int = field(default=8)
     previous_lora_weights: str = field(default=None) # 如果要在前面的 LoRA 上继续训练，就设置一下之前的地址
-
+    no_prompt_loss: int = field(default=0) # 默认 prompt 参与loss计算
 
 class CastOutputToFloat(nn.Sequential):
     def forward(self, x):
         return super().forward(x).to(torch.float32)
 
-
-tokenizer.pad_token = tokenizer.unk_token
-data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer,mlm=False)
-# DataCollatorForLanguageModeling 会自动帮你 padding, labels
-# Shifting the inputs and labels to align them happens inside the model, so the data collator just copies the inputs to create the labels.
-# 参考教程：https://huggingface.co/learn/nlp-course/chapter7/6?fw=pt
 
 class ModifiedTrainer(Trainer):
     def compute_loss(self, model, inputs, return_outputs=False):
@@ -54,30 +48,62 @@ class ModifiedTrainer(Trainer):
         # 从而只保存 LoRA weights
         self.model.save_pretrained(output_dir)
 
-# TODO
-# import evaluate
-# accuracy = evaluate.load("accuracy")
-
-# def compute_metrics(eval_pred):
-#     predictions, _ = eval_pred
-#     predictions = np.argmax(predictions, axis=0)
-#     labels = np.zeros(predictions.shape)
-#     return accuracy.compute(predictions=predictions, references=labels)
-
 
 writer = SummaryWriter()
 finetune_args, training_args = HfArgumentParser(
     (FinetuneArguments, TrainingArguments)
 ).parse_args_into_dataclasses()
 
+
+
+tokenizer.pad_token = tokenizer.unk_token
+
+def my_data_collator(features: list) -> dict:
+    """
+    这个 collator 会把 prompt 的部分给mask掉，使得只有 output 部分参与计算 loss
+    """
+    len_ids = [len(feature["input_ids"]) for feature in features]
+    longest = max(len_ids)
+    input_ids = []
+    labels_list = []
+    for ids_l, feature in sorted(zip(len_ids, features), key=lambda x: -x[0]):
+        ids = feature["input_ids"]
+        seq_len = feature["seq_len"] # prompt length
+        labels = (
+            [-100] * (seq_len - 1) + ids[(seq_len - 1) :] + [-100] * (longest - ids_l)
+        )
+        ids = ids + [tokenizer.pad_token_id] * (longest - ids_l)
+        _ids = torch.LongTensor(ids)
+        labels_list.append(torch.LongTensor(labels))
+        input_ids.append(_ids)
+    input_ids = torch.stack(input_ids)
+    labels = torch.stack(labels_list)
+    return {
+        "input_ids": input_ids,
+        "labels": labels,
+    }
+
+if finetune_args.no_prompt_loss:
+    print("*** If you see this message, ***")
+    print("*** it means: Prompt is not calculated in loss. ***")
+    data_collator = my_data_collator
+else:
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer,mlm=False)
+# DataCollatorForLanguageModeling 会自动帮你 padding, labels
+# Shifting the inputs and labels to align them happens inside the model, so the data collator just copies the inputs to create the labels.
+# 参考教程：https://huggingface.co/learn/nlp-course/chapter7/6?fw=pt
+
+
+
 # load dataset
 train_dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_train_dataset)
 eval_dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_eval_dataset)
 if finetune_args.train_size:
     train_size = min(finetune_args.train_size, len(train_dataset))
+    train_dataset = train_dataset.select(range(train_size))
 if finetune_args.eval_size:
     eval_size = min(finetune_args.eval_size, len(eval_dataset))
-eval_dataset = eval_dataset.select(range(eval_size))
+    eval_dataset = eval_dataset.select(range(eval_size))
 # dataset = dataset.select(range(10000))
 print(f"train: {len(train_dataset)}")
 print(f"evaluation: {len(eval_dataset)}")

@@ -12,4 +12,6 @@ RLHF/weights/
 web_demo/resource
 eval/
 evaluate.ipynb
+predict.sh
 my_templates.py
+acc.py
