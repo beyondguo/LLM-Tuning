@@ -20,10 +20,11 @@ tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, trust_remote_code=Tr
 
 @dataclass
 class FinetuneArguments:
-    tokenized_train_dataset: str = field(default=" ") # tokenized之后的数据集文件夹
-    tokenized_eval_dataset: str = field(default=" ") # tokenized之后的数据集文件夹
-    train_size: int = field(default=None) # train size
-    eval_size: int = field(default=None) # train size
+    tokenized_dataset: str = field(default=" ") # tokenized之后的数据集文件夹
+    # tokenized_train_dataset: str = field(default=" ") # tokenized之后的数据集文件夹
+    # tokenized_eval_dataset: str = field(default=" ") # tokenized之后的数据集文件夹
+    train_size: int = field(default=1000) # train size
+    eval_size: int = field(default=1000) # train size
     model_path: str = field(default=" ")
     lora_rank: int = field(default=8)
     previous_lora_weights: str = field(default=None) # 如果要在前面的 LoRA 上继续训练，就设置一下之前的地址
@@ -96,14 +97,21 @@ else:
 
 
 # load dataset
-train_dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_train_dataset)
-eval_dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_eval_dataset)
-if finetune_args.train_size:
-    train_size = min(finetune_args.train_size, len(train_dataset))
-    train_dataset = train_dataset.select(range(train_size))
-if finetune_args.eval_size:
-    eval_size = min(finetune_args.eval_size, len(eval_dataset))
-    eval_dataset = eval_dataset.select(range(eval_size))
+dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_dataset)
+train_dataset = dataset.select(range(finetune_args.train_size)) # 取前 N 条训练
+eval_dataset = dataset.select(list(range(len(dataset)))[-finetune_args.eval_size:]) # 取后 N 条验证
+
+# train_dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_train_dataset)
+# eval_dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_eval_dataset)
+# if finetune_args.train_size:
+#     train_size = min(finetune_args.train_size, len(train_dataset))
+#     train_dataset = train_dataset.select(range(train_size))
+# if finetune_args.eval_size:
+#     eval_size = min(finetune_args.eval_size, len(eval_dataset))
+#     eval_dataset = eval_dataset.select(range(eval_size))
+    
+    
+
 # dataset = dataset.select(range(10000))
 print(f"train: {len(train_dataset)}")
 print(f"evaluation: {len(eval_dataset)}")

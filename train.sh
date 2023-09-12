@@ -16,10 +16,9 @@
 
 
 WANDB_PROJECT=DCAI-ABSA-InternLM CUDA_VISIBLE_DEVICES=2,3 python internlm_lora_tuning.py \
-    --tokenized_train_dataset aspect_sentiment_train_ori_10k_plus-internlm-chat-7b \
-    --tokenized_eval_dataset aspect_sentiment_test_ori_plus-internlm-chat-7b \
+    --tokenized_dataset aspect_sentiment_train_ori_10k_plus-internlm-chat-7b \
     --train_size 1000 \
-    --eval_size 100 \
+    --eval_size 1000 \
     --lora_rank 8 \
     --per_device_train_batch_size 4 \
     --per_device_eval_batch_size 8 \
@@ -34,9 +33,9 @@ WANDB_PROJECT=DCAI-ABSA-InternLM CUDA_VISIBLE_DEVICES=2,3 python internlm_lora_t
     --no_prompt_loss 1 \
     --remove_unused_columns false \
     --logging_steps 100 \
-    --output_dir weights/ori_10k_no_prompt_loss-internlm-chat-7b \
+    --output_dir weights/test \
     --report_to wandb \
-    --run_name ori_10k_no_prompt_loss
+    --run_name test
 
 
 # CUDA_VISIBLE_DEVICES=0,1 python chatglm2_lora_tuning.py \
