@@ -13,8 +13,9 @@
 
 
 🤖 目前支持：
-- 上海 AILab 书生大模型 [InternLM](https://huggingface.co/internlm) 的 LoRA 微调 (New!🔥)
-- 百川智能 [baichuan-7B](https://huggingface.co/baichuan-inc/baichuan-7B) 的 LoRA 微调和 **RLHF** 全流程
+- 中文羊驼大模型 [Chinese-LLaMA-Alpaca](https://github.com/ymcui/Chinese-LLaMA-Alpaca) 的 LoRA 微调
+- 上海 AILab 书生大模型 [InternLM-7B](https://huggingface.co/internlm) 的 LoRA 微调
+- 百川智能 [Baichaun-7B, Baichuan2-7B](https://huggingface.co/baichuan-inc/baichuan-7B) 的 LoRA 微调和 **RLHF** 全流程
 - 清华 [ChatGLM2-6B](https://huggingface.co/THUDM/chatglm2-6b) 的 LoRA 微调 
 - 清华 [ChatGLM-6B](https://huggingface.co/THUDM/chatglm-6b) 的 LoRA 微调
 
@@ -25,7 +26,9 @@
     - ChatGLM-6B 应使用 `chatglm_lora_tuning.py`
     - ChatGLM2-6B 应使用 `chatglm2_lora_tuning.py`
     - baichuan-7B 应使用 `baichuan_lora_tuning.py`
-    - internlm-chat-7b(-chat) 应使用 `intermlm_lora_tuning.py`
+    - baichuan2-7B 应使用 `baichuan2_lora_tuning.py`
+    - internlm-chat/base-7b 应使用 `intermlm_lora_tuning.py`
+    - chinese-llama2/alpaca2-7b 应使用 `chinese_llama2_alpaca2_lora_tuning.py`
 
 🎯 手把手的 RLHF 教程：见 [LoRA-based-RLHF](/RLHF/)
 
