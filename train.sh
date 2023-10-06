@@ -1,117 +1,420 @@
-# WANDB_PROJECT=DCAI-ABSA-InternLM CUDA_VISIBLE_DEVICES=0,1 python internlm_lora_tuning.py \
-#     --tokenized_dataset aspect_sentiment_train_orig_10k-internlm-chat-7b \
-#     --lora_rank 8 \
-#     --per_device_train_batch_size 4 \
-#     --gradient_accumulation_steps 1 \
-#     --num_train_epochs 2 \
-#     --save_steps 100 \
-#     --save_total_limit 2 \
-#     --learning_rate 1e-4 \
-#     --fp16 \
-#     --remove_unused_columns false \
-#     --logging_steps 100 \
-#     --output_dir weights/aspect_sentiment_train_orig_10k-internlm-chat-7b \
-#     --report_to wandb \
-#     --run_name original-0809-gby
 
 
-WANDB_PROJECT=DCAI-ABSA-InternLM CUDA_VISIBLE_DEVICES=2,3 python internlm_lora_tuning.py \
-    --tokenized_dataset aspect_sentiment_train_ori_10k_plus-internlm-chat-7b \
-    --train_size 1000 \
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_senti-desc_d1_train-Baichuan2-7B-Base \
+    --train_size 500 \
     --eval_size 1000 \
     --lora_rank 8 \
     --per_device_train_batch_size 4 \
-    --per_device_eval_batch_size 8 \
+    --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
     --num_train_epochs 1 \
     --save_steps 200 \
     --evaluation_strategy steps \
-    --eval_steps 200 \
+    --eval_steps 25 \
     --save_total_limit 2 \
     --learning_rate 1e-4 \
     --fp16 \
     --no_prompt_loss 1 \
     --remove_unused_columns false \
-    --logging_steps 100 \
-    --output_dir weights/test \
+    --logging_steps 25 \
+    --output_dir weights/absa_senti-desc_d1_train-500-Baichuan2-7B-Base \
     --report_to wandb \
-    --run_name test
+    --run_name absa_senti-desc_d1_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_senti-desc_d2_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_senti-desc_d2_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_senti-desc_d2_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_digital-label_d1_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_digital-label_d1_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_digital-label_d1_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_digital-label_d2_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_digital-label_d2_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_digital-label_d2_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_mentioned-only_d1_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_mentioned-only_d1_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_mentioned-only_d1_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_mentioned-only_d2_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_mentioned-only_d2_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_mentioned-only_d2_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_desc-senti_d1_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_desc-senti_d1_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_desc-senti_d1_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_desc-senti_d2_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_desc-senti_d2_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_desc-senti_d2_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_dict-output_d1_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_dict-output_d1_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_dict-output_d1_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_dict-output_d2_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_dict-output_d2_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_dict-output_d2_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_lines-output_d1_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_lines-output_d1_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_lines-output_d1_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_lines-output_d2_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_lines-output_d2_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_lines-output_d2_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_instruction-first_d1_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_instruction-first_d1_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_instruction-first_d1_train-500_gby1002
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_instruction-first_d2_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_instruction-first_d2_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_instruction-first_d2_train-500_gby1002
 
 
-# CUDA_VISIBLE_DEVICES=0,1 python chatglm2_lora_tuning.py \
-#     --tokenized_dataset sentiment_comp_ie_chatglm2 \
-#     --lora_rank 4 \
-#     --per_device_train_batch_size 1 \
-#     --gradient_accumulation_steps 10 \
-#     --num_train_epochs 2 \
-#     --save_steps 200 \
-#     --save_total_limit 2 \
-#     --learning_rate 1e-4 \
-#     --fp16 \
-#     --remove_unused_columns false \
-#     --logging_steps 50 \
-#     --output_dir weights/temp \
-#     --report_to none
-#     # --output_dir weights/sentiment_comp_ie_chatglm2
+
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_baseline_d1_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_baseline_d1_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_baseline_d1_train-500_gby1002
 
 
-# CUDA_VISIBLE_DEVICES=3 python chatglm_lora_tuning.py \
-#     --tokenized_dataset sentiment_comp_ie_shuffled \
-#     --lora_rank 4 \
-#     --per_device_train_batch_size 8 \
-#     --gradient_accumulation_steps 1 \
-#     --num_train_epochs 2 \
-#     --save_steps 200 \
-#     --save_total_limit 2 \
-#     --learning_rate 1e-4 \
-#     --fp16 \
-#     --remove_unused_columns false \
-#     --logging_steps 50 \
-#     --output_dir weights/temp
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_baseline_d2_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_baseline_d2_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_baseline_d2_train-500_gby1002
 
 
-# CUDA_VISIBLE_DEVICES=3 python chatglm_lora_tuning.py \
-#     --tokenized_dataset sentiment_comp_ie_shuffled \
-#     --lora_rank 4 \
-#     --per_device_train_batch_size 8 \
-#     --gradient_accumulation_steps 1 \
-#     --num_train_epochs 2 \
-#     --save_steps 200 \
-#     --save_total_limit 2 \
-#     --learning_rate 1e-4 \
-#     --fp16 \
-#     --remove_unused_columns false \
-#     --logging_steps 50 \
-#     --output_dir weights/temp
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_text2label_d1_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_text2label_d1_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_text2label_d1_train-500_gby1002
 
 
-# CUDA_VISIBLE_DEVICES=0,1,2,3 python baichuan_lora_tuning.py \
-#     --tokenized_dataset sentiment_comp_ie_shuffled_baichuan-7B \
-#     --lora_rank 4 \
-#     --per_device_train_batch_size 16 \
-#     --gradient_accumulation_steps 1 \
-#     --num_train_epochs 3 \
-#     --save_steps 200 \
-#     --save_total_limit 2 \
-#     --learning_rate 1e-4 \
-#     --fp16 \
-#     --remove_unused_columns false \
-#     --logging_steps 50 \
-#     --output_dir weights/sentiment_comp_ie_shuffled_baichuan-7B
-
-
-# continue training with LoRA
-# 使用 rulai_baichuan-7B 数据，在 weights/rulai_plus_baichuan-7B 的基础上继续训练 新的结果保存在 weights/rulai_plus_enhanced_baichuan-7B
-# CUDA_VISIBLE_DEVICES=0,1,2,3 python baichuan_lora_tuning.py \
-#     --tokenized_dataset rulai_enhance_baichuan-7B \
-#     --previous_lora_weights weights/rulai_plus_baichuan-7B \
-#     --per_device_train_batch_size 1 \
-#     --gradient_accumulation_steps 1 \
-#     --num_train_epochs 5 \
-#     --save_steps 200 \
-#     --save_total_limit 2 \
-#     --learning_rate 1e-5 \
-#     --fp16 \
-#     --remove_unused_columns false \
-#     --logging_steps 50 \
-#     --output_dir weights/rulai_plus_enhanced_baichuan-7B
+WANDB_PROJECT=DCAI-ABSA-Baichuan2-base CUDA_VISIBLE_DEVICES=2 python baichuan2_lora_tuning.py \
+    --model_version base-7b \
+    --tokenized_dataset absa_text2label_d2_train-Baichuan2-7B-Base \
+    --train_size 500 \
+    --eval_size 1000 \
+    --lora_rank 8 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 1 \
+    --save_steps 200 \
+    --evaluation_strategy steps \
+    --eval_steps 25 \
+    --save_total_limit 2 \
+    --learning_rate 1e-4 \
+    --fp16 \
+    --no_prompt_loss 1 \
+    --remove_unused_columns false \
+    --logging_steps 25 \
+    --output_dir weights/absa_text2label_d2_train-500-Baichuan2-7B-Base \
+    --report_to wandb \
+    --run_name absa_text2label_d2_train-500_gby1002

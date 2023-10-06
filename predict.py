@@ -44,7 +44,7 @@ def predict(prompts):
     input_tensors.to('cuda:0')
     
     # 下面是 InternLM 专属 generate 参数
-    outputs = model.generate(**input_tensors, max_new_tokens=200, # 按照指定格式，输出差不多就这么长，多了就不用输出了
+    outputs = model.generate(**input_tensors, max_new_tokens=200,   # 按照指定格式，输出差不多就这么长，多了就不用输出了
                             temperature=0.8,
                             top_p=0.8,
                             eos_token_id=(2, 103028),
@@ -76,9 +76,10 @@ for i in tqdm(range(len(prompts)//bs + 1)):
             print(each)
 
 
-name = args.lora_path.split('/')[-1]
+name1 = args.lora_path.split('/')[-1]
+name2 = args.data_path.split('/')[-1]
 os.makedirs('data/eval', exist_ok=True)
-with open(f'data/eval/{name}_predictions.json', 'w', encoding='utf8') as f:
+with open(f'data/eval/{name1}-{name2}_predictions.json', 'w', encoding='utf8') as f:
     for prompt, target, prediction in zip(prompts, targets, predicted_results):
         line = {
             'prompt': prompt,
@@ -89,4 +90,4 @@ with open(f'data/eval/{name}_predictions.json', 'w', encoding='utf8') as f:
         f.write(line)
         f.write('\n')
 
-print(f'prediction file saved at [`data/eval/{name}_predictions.json`]')
+print(f'prediction file saved at [`data/eval/{name1}-{name2}_predictions.json`]')

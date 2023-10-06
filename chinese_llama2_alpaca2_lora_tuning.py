@@ -3,7 +3,7 @@ from transformers.integrations import TensorBoardCallback
 from torch.utils.tensorboard import SummaryWriter
 from transformers import TrainingArguments
 from transformers import Trainer, HfArgumentParser
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import LlamaTokenizer, AutoModelForCausalLM
 from transformers import DataCollatorForLanguageModeling
 import torch
 import torch.nn as nn
@@ -14,18 +14,18 @@ import os
 from pprint import pprint as print
 
 
+
+
 @dataclass
 class FinetuneArguments:
-    model_version: str = field(default="chat-7b")
+    model_version: str = field(default="llama")
     tokenized_dataset: str = field(default=" ") # tokenized之后的数据集文件夹
-    # tokenized_train_dataset: str = field(default=" ") # tokenized之后的数据集文件夹
-    # tokenized_eval_dataset: str = field(default=" ") # tokenized之后的数据集文件夹
     train_size: int = field(default=1000) # train size
     eval_size: int = field(default=1000) # train size
-    model_path: str = field(default=" ")
     lora_rank: int = field(default=8)
     previous_lora_weights: str = field(default=None) # 如果要在前面的 LoRA 上继续训练，就设置一下之前的地址
     no_prompt_loss: int = field(default=0) # 默认 prompt 参与loss计算
+
 
 class CastOutputToFloat(nn.Sequential):
     def forward(self, x):
@@ -46,20 +46,22 @@ class ModifiedTrainer(Trainer):
         # 从而只保存 LoRA weights
         self.model.save_pretrained(output_dir)
 
-
 writer = SummaryWriter()
 finetune_args, training_args = HfArgumentParser(
     (FinetuneArguments, TrainingArguments)
 ).parse_args_into_dataclasses()
 
-if finetune_args.model_version == 'chat-7b':
-    model_checkpoint = "internlm/internlm-chat-7b"
-elif finetune_args.model_version == 'base-7b':
-    model_checkpoint = "internlm/internlm-7b"
-print(f"*** Notice: Your are using `{model_checkpoint}` model! ***")
-tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, trust_remote_code=True)
 
+if finetune_args.model_version == 'base':
+    model_checkpoint = "../DCAI-share/llm/chinese-llama-2-7b"
+elif finetune_args.model_version == 'chat':
+    model_checkpoint = "../DCAI-share/llm/chinese-alpaca-2-7b"
+print(f"*** Notice: Your are using `{model_checkpoint}` model! ***")
+
+
+tokenizer = LlamaTokenizer.from_pretrained(model_checkpoint, trust_remote_code=True)
 tokenizer.pad_token = tokenizer.unk_token
+
 
 def my_data_collator(features: list) -> dict:
     """
@@ -92,29 +94,12 @@ if finetune_args.no_prompt_loss:
     data_collator = my_data_collator
 else:
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer,mlm=False)
-# DataCollatorForLanguageModeling 会自动帮你 padding, labels
-# Shifting the inputs and labels to align them happens inside the model, so the data collator just copies the inputs to create the labels.
-# 参考教程：https://huggingface.co/learn/nlp-course/chapter7/6?fw=pt
-
 
 
 # load dataset
 dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_dataset)
 train_dataset = dataset.select(range(finetune_args.train_size)) # 取前 N 条训练
 eval_dataset = dataset.select(list(range(len(dataset)))[-finetune_args.eval_size:]) # 取后 N 条验证
-
-# train_dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_train_dataset)
-# eval_dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_eval_dataset)
-# if finetune_args.train_size:
-#     train_size = min(finetune_args.train_size, len(train_dataset))
-#     train_dataset = train_dataset.select(range(train_size))
-# if finetune_args.eval_size:
-#     eval_size = min(finetune_args.eval_size, len(eval_dataset))
-#     eval_dataset = eval_dataset.select(range(eval_size))
-    
-    
-
-# dataset = dataset.select(range(10000))
 print(f"train: {len(train_dataset)}")
 print(f"evaluation: {len(eval_dataset)}")
 
@@ -122,20 +107,12 @@ print(f"evaluation: {len(eval_dataset)}")
 model = AutoModelForCausalLM.from_pretrained(
     model_checkpoint, load_in_8bit=False, trust_remote_code=True, 
     device_map="auto" # 模型不同层会被自动分配到不同GPU上进行计算
+    # device_map={'':torch.cuda.current_device()} # 艹，这个设置有bug，一个小小的baichaun在80G的卡都能爆，换成 auto 立马就好了
 )
 print(model.hf_device_map)
 
-"""
-.gradient_checkpointing_enable()
-.enable_input_require_grads()
-.is_parallelizable
-这三个都是 transformers 模型的函数/参数（见 transformers/modeling_utils.py 文件）
-"""
 model.gradient_checkpointing_enable() 
-# note: use gradient checkpointing to save memory at the expense of slower backward pass.
 model.enable_input_require_grads()
-# note: Enables the gradients for the input embeddings. This is useful for fine-tuning adapter weights while keeping the model weights fixed. 
-# See https://github.com/huggingface/transformers/blob/ee88ae59940fd4b2c8fc119373143d7a1175c651/src/transformers/modeling_utils.py#L1190
 model.lm_head = CastOutputToFloat(model.lm_head)
 
 
@@ -152,7 +129,6 @@ if finetune_args.previous_lora_weights == None:
     
     model = get_peft_model(model, peft_config)
 else:
-    # 当设置了 previous_lora_weights 说明要继续训练之前的 lora weights
     model = PeftModel.from_pretrained(model, finetune_args.previous_lora_weights)
     # see: https://github.com/huggingface/peft/issues/184
     for name, param in model.named_parameters():
@@ -160,6 +136,7 @@ else:
             param.requires_grad = True
 
 # start train
+model.save_pretrained(training_args.output_dir) # 因为adapter_config.json只能通过这个save_pretrained来生成，先这里生成一份，好在训练完之前就可以尝试中间的checkpoint
 trainer = ModifiedTrainer(
     model=model,
     train_dataset=train_dataset,
@@ -167,9 +144,9 @@ trainer = ModifiedTrainer(
     args=training_args,
     callbacks=[TensorBoardCallback(writer)],
     data_collator=data_collator,
-    
 )
 trainer.train()
 writer.close()
 # save model
 model.save_pretrained(training_args.output_dir)
+

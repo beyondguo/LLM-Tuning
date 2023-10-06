@@ -3,7 +3,8 @@ import json
 from tqdm import tqdm
 import datasets
 import transformers
-
+from transformers import AutoTokenizer, LlamaTokenizer
+ 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_checkpoint", type=str, help="checkpoint, like `THUDM/chatglm-6b`")
 parser.add_argument("--input_file", type=str, help="Instruction 数据文件地址，文件中每一行都是json格式，包含一个输出和一个输出")
@@ -32,8 +33,12 @@ def preprocess(tokenizer, config, example, max_seq_length, prompt_key, target_ke
 
 
 def read_jsonl(path, max_seq_length, prompt_key,target_key,skip_overlength=False):
-    tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_checkpoint, trust_remote_code=True)
+    if 'llama' in model_checkpoint.lower() or 'alpaca' in model_checkpoint.lower():
+        tokenizer = LlamaTokenizer.from_pretrained(
+            model_checkpoint, trust_remote_code=True)
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_checkpoint, trust_remote_code=True)
     config = transformers.AutoConfig.from_pretrained(
         model_checkpoint, trust_remote_code=True, device_map='auto')
     with open(path, "r") as f:

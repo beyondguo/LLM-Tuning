@@ -15,3 +15,4 @@ evaluate.ipynb
 predict.sh
 my_templates.py
 acc.py
+train_llama.sh

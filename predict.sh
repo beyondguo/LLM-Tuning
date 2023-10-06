@@ -4,13 +4,70 @@
 # 最终输出文件的地址为 data/eval/{name}_predictions.json， name 为 lora 的命名
 # mode: baseline, input-first, textual-label, mentioned-only, lines-output, jsonfy-output
 
-CUDA_VISIBLE_DEVICES=0 python predict.py \
-    --llm_ckp internlm/internlm-chat-7b \
-    --lora_path weights/ori_10k_no_prompt_loss-internlm-chat-7b \
-    --data_path data/aspect_sentiment_test_ori_plus.json \
+CUDA_VISIBLE_DEVICES=3 python predict.py \
+    --llm_ckp ../DCAI-share/llm/Baichuan2-7B-Chat \
+    --lora_path weights/absa_baseline_d1_train-500-Baichuan2-7B-Chat \
+    --data_path data/absa_baseline_d1_test.json \
     --prompt_key prompt \
     --target_key output \
     --batch_size 8
+
+# CUDA_VISIBLE_DEVICES=1 python predict.py \
+#     --llm_ckp internlm/internlm-chat-7b \
+#     --lora_path weights/absa_baseline_d1_train_1000 \
+#     --data_path data/absa_baseline_d2_test.json \
+#     --prompt_key prompt \
+#     --target_key output \
+#     --batch_size 8
+
+# CUDA_VISIBLE_DEVICES=1 python predict.py \
+#     --llm_ckp internlm/internlm-chat-7b \
+#     --lora_path weights/absa_baseline_d2_train_1000 \
+#     --data_path data/absa_baseline_d1_test.json \
+#     --prompt_key prompt \
+#     --target_key output \
+#     --batch_size 8
+
+# CUDA_VISIBLE_DEVICES=1 python predict.py \
+#     --llm_ckp internlm/internlm-chat-7b \
+#     --lora_path weights/absa_baseline_d2_train_1000 \
+#     --data_path data/absa_baseline_d2_test.json \
+#     --prompt_key prompt \
+#     --target_key output \
+#     --batch_size 8
+
+# CUDA_VISIBLE_DEVICES=1 python predict.py \
+#     --llm_ckp internlm/internlm-chat-7b \
+#     --lora_path weights/absa_text2label_d1_train_1000 \
+#     --data_path data/absa_text2label_d1_test.json \
+#     --prompt_key prompt \
+#     --target_key output \
+#     --batch_size 8
+
+# CUDA_VISIBLE_DEVICES=1 python predict.py \
+#     --llm_ckp internlm/internlm-chat-7b \
+#     --lora_path weights/absa_text2label_d1_train_1000 \
+#     --data_path data/absa_text2label_d2_test.json \
+#     --prompt_key prompt \
+#     --target_key output \
+#     --batch_size 8
+
+# CUDA_VISIBLE_DEVICES=1 python predict.py \
+#     --llm_ckp internlm/internlm-chat-7b \
+#     --lora_path weights/absa_baseline_d1_train_1000 \
+#     --data_path data/absa_baseline_d1_test.json \
+#     --prompt_key prompt \
+#     --target_key output \
+#     --batch_size 8
+
+# CUDA_VISIBLE_DEVICES=1 python predict.py \
+#     --llm_ckp internlm/internlm-chat-7b \
+#     --lora_path weights/absa_baseline_d1_train_1000 \
+#     --data_path data/absa_baseline_d2_test.json \
+#     --prompt_key prompt \
+#     --target_key output \
+#     --batch_size 8
+
 
 
 # # # --------- wh
