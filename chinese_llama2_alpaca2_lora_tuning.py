@@ -103,6 +103,7 @@ eval_dataset = dataset.select(list(range(len(dataset)))[-finetune_args.eval_size
 print(f"train: {len(train_dataset)}")
 print(f"evaluation: {len(eval_dataset)}")
 
+
 # init model
 model = AutoModelForCausalLM.from_pretrained(
     model_checkpoint, load_in_8bit=False, trust_remote_code=True, 
@@ -124,7 +125,7 @@ if finetune_args.previous_lora_weights == None:
         r=finetune_args.lora_rank,
         lora_alpha=32,
         lora_dropout=0.1,
-        target_modules = ["q_proj","k_proj","v_proj"] # 把model打印出来，找跟attention相关的模块
+        target_modules = ["q_proj","k_proj","v_proj","o_proj","gate_proj","down_proj","up_proj"] # https://github.com/ymcui/Chinese-LLaMA-Alpaca-2/wiki/sft_scripts_zh 
     )
     
     model = get_peft_model(model, peft_config)
