@@ -3,12 +3,12 @@
 import os
 import json
 from tqdm import tqdm
-from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer, LlamaTokenizer
 from peft import PeftModel
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--llm_ckp', type=str, help='checkpoint of LLM')
-parser.add_argument('--lora_path', type=str, help='lora adapters path')
+parser.add_argument('--lora_path', type=str, default=None, help='lora adapters path')
 parser.add_argument('--data_path', type=str, help='data to predict, should be json-lines format')
 parser.add_argument('--prompt_key', type=str, help='the key of prompts in the data file')
 parser.add_argument('--target_key', type=str, help='the key of targets/labels in the data file')
@@ -17,8 +17,16 @@ args = parser.parse_args()
 
 
 model = AutoModelForCausalLM.from_pretrained(args.llm_ckp, trust_remote_code=True, device_map="auto").half()
-tokenizer = AutoTokenizer.from_pretrained(args.llm_ckp, trust_remote_code=True)
-model = PeftModel.from_pretrained(model, args.lora_path).half()
+if 'llama' in args.llm_ckp.lower() or 'alpaca' in args.llm_ckp.lower():
+    tokenizer = LlamaTokenizer.from_pretrained(
+        args.llm_ckp, trust_remote_code=True)
+else:
+    tokenizer = AutoTokenizer.from_pretrained(args.llm_ckp, trust_remote_code=True)
+if args.lora_path:
+    print("Using LoRA!")
+    model = PeftModel.from_pretrained(model, args.lora_path).half()
+else:
+    print("Using Original LLM!")
 
 prompts, targets = [], []
 with open(args.data_path, 'r') as f:
@@ -44,15 +52,17 @@ def predict(prompts):
     input_tensors.to('cuda:0')
     
     # 下面是 InternLM 专属 generate 参数
+    # outputs = model.generate(**input_tensors, max_new_tokens=200,   # 按照指定格式，输出差不多就这么长，多了就不用输出了
+    #                         temperature=0.8,
+    #                         top_p=0.8,
+    #                         eos_token_id=(2, 103028),
+    #                         )
     outputs = model.generate(**input_tensors, max_new_tokens=200,   # 按照指定格式，输出差不多就这么长，多了就不用输出了
-                            temperature=0.8,
-                            top_p=0.8,
-                            eos_token_id=(2, 103028),
+                            repetition_penalty=1.1
                             )
     # 过滤掉 prompt 部分
     real_outputs = []
     for i,output in enumerate(outputs):
-        # output = output[len(inputs.input_ids[i]):]
         output = output[prompt_length:]
         real_outputs.append(output)
     results = tokenizer.batch_decode(real_outputs, skip_special_tokens=True)
@@ -63,6 +73,8 @@ def predict(prompts):
 # 批量预测
 bs = args.batch_size
 predicted_results = []
+empty_number = 0
+total_number = 0
 for i in tqdm(range(len(prompts)//bs + 1)):
     batch = prompts[i * bs : (i+1) * bs]
     if batch:
@@ -74,9 +86,19 @@ for i in tqdm(range(len(prompts)//bs + 1)):
             print(prompt)
             print(' ===prediction===>')
             print(each)
+        for res in batch_results:
+            if res == '':
+                empty_number += 1
+            total_number += 1
+    print('---------------------------------------------')
+    print(f'empty number: {empty_number}/{total_number}')
+    print('---------------------------------------------')
 
 
-name1 = args.lora_path.split('/')[-1]
+if args.lora_path:
+    name1 = args.lora_path.split('/')[-1]
+else:
+    name1 = args.llm_ckp.split('/')[-1]
 name2 = args.data_path.split('/')[-1]
 os.makedirs('data/eval', exist_ok=True)
 with open(f'data/eval/{name1}-{name2}_predictions.json', 'w', encoding='utf8') as f:
@@ -90,4 +112,4 @@ with open(f'data/eval/{name1}-{name2}_predictions.json', 'w', encoding='utf8') a
         f.write(line)
         f.write('\n')
 
-print(f'prediction file saved at [`data/eval/{name1}-{name2}_predictions.json`]')
+print(f'prediction file saved at [`data/eval_llama2/{name1}-{name2}_predictions.json`]')

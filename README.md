@@ -1,6 +1,15 @@
 # Tuning LLMs with no tears 💦.
 
 
+
+🔥 Latest:
+We introduce the idea of **Sample Design Engineering (SDE)** for LLMs' Downstream Fine-Tuning.
+
+Code/Paper coming very soon~
+
+---
+
+
 💻 可复现的小项目：
 - [**baichuan-RLHF**：基于 LoRA 的 RLHF 教程，让 baichaun 活泼如网友！(New!🔥)](/RLHF/)
 - [**ChatBaichuan**：基于 HC3 数据集让 百川大模型（baichuan-7B）有对话能力！](/projects/ChatBaichuan-HC3/)
@@ -13,6 +22,8 @@
 
 
 🤖 目前支持：
+- [Meta LLaMA2](https://huggingface.co/meta-llama) 的 LoRA 微调
+- 通义千问大模型 [Qwen1.5](https://huggingface.co/Qwen/Qwen1.5-4B-Chat) 的 LoRA 微调
 - 中文羊驼大模型 [Chinese-LLaMA-Alpaca](https://github.com/ymcui/Chinese-LLaMA-Alpaca) 的 LoRA 微调
 - 上海 AILab 书生大模型 [InternLM-7B](https://huggingface.co/internlm) 的 LoRA 微调
 - 百川智能 [Baichaun-7B, Baichuan2-7B](https://huggingface.co/baichuan-inc/baichuan-7B) 的 LoRA 微调和 **RLHF** 全流程

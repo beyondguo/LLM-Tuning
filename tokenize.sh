@@ -142,27 +142,61 @@
 #     --target_key output \
 #     --save_name absa_lines-output_d2_train-alpaca2 \
 #     --max_seq_length 2000 \
-    --skip_overlength False
+#     --skip_overlength False
+
+# CUDA_VISIBLE_DEVICES=0 python tokenize_dataset_rows.py \
+#     --model_checkpoint ../DCAI-share/llm/chinese-alpaca-2-7b \
+#     --input_file absa_instruction-first_d1_train.json \
+#     --prompt_key prompt \
+#     --target_key output \
+#     --save_name absa_instruction-first_d1_train-alpaca2 \
+#     --max_seq_length 2000 \
+#     --skip_overlength False
+
+# CUDA_VISIBLE_DEVICES=0 python tokenize_dataset_rows.py \
+#     --model_checkpoint ../DCAI-share/llm/chinese-alpaca-2-7b \
+#     --input_file absa_instruction-first_d2_train.json \
+#     --prompt_key prompt \
+#     --target_key output \
+#     --save_name absa_instruction-first_d2_train-alpaca2 \
+#     --max_seq_length 2000 \
+#     --skip_overlength False
+
+
+N=4500
+desc_num=0
 
 CUDA_VISIBLE_DEVICES=0 python tokenize_dataset_rows.py \
-    --model_checkpoint ../DCAI-share/llm/Baichuan2-7B-Chat \
-    --input_file absa_instruction-first_d1_train.json \
-    --prompt_key prompt \
-    --target_key output \
-    --save_name absa_instruction-first_d1_train-Baichuan2-7B-Chat \
-    --max_seq_length 2000 \
-    --skip_overlength False
+   --model_checkpoint /root/DCAI-share/llm/Llama-2-7b-chat-hf \
+   --input_file NER_train_val_${N}_weak1_desc${desc_num}_design.json \
+   --prompt_key prompt \
+   --target_key output \
+   --save_name NER_weak1_desc${desc_num}_design_${N}-llama2_chat \
+   --max_seq_length 2000 \
+   --skip_overlength False
+
+
 
 CUDA_VISIBLE_DEVICES=0 python tokenize_dataset_rows.py \
-    --model_checkpoint ../DCAI-share/llm/Baichuan2-7B-Chat \
-    --input_file absa_instruction-first_d2_train.json \
-    --prompt_key prompt \
-    --target_key output \
-    --save_name absa_instruction-first_d2_train-Baichuan2-7B-Chat \
-    --max_seq_length 2000 \
-    --skip_overlength False
+   --model_checkpoint /root/DCAI-share/llm/Llama-2-7b-chat-hf \
+   --input_file NER_train_val_${N}_good1_desc${desc_num}_design.json \
+   --prompt_key prompt \
+   --target_key output \
+   --save_name NER_good1_desc${desc_num}_design_${N}-llama2_chat \
+   --max_seq_length 2000 \
+   --skip_overlength False
 
 
+
+CUDA_VISIBLE_DEVICES=0 python tokenize_dataset_rows.py \
+   --model_checkpoint /root/DCAI-share/llm/Llama-2-7b-chat-hf \
+   --input_file NER_train_val_${N}_default_desc${desc_num}_design.json \
+   --prompt_key prompt \
+   --target_key output \
+   --save_name NER_default_desc${desc_num}_design_${N}-llama2_chat \
+   --max_seq_length 2000 \
+   --skip_overlength False
+   
 # THUDM/chatglm-6b
 # THUDM/chatglm2-6b
 # baichuan-inc/baichuan-7B
@@ -172,3 +206,5 @@ CUDA_VISIBLE_DEVICES=0 python tokenize_dataset_rows.py \
 # ../DCAI-share/llm/Baichuan2-7B-Base
 # ../DCAI-share/llm/chinese-llama-2-7b
 # ../DCAI-share/llm/chinese-alpaca-2-7b
+# /root/DCAI-share/llm/Llama-2-7b-chat-hf
+# Qwen/Qwen1.5-4B-Chat

@@ -5,8 +5,7 @@
 # mode: baseline, input-first, textual-label, mentioned-only, lines-output, jsonfy-output
 
 CUDA_VISIBLE_DEVICES=3 python predict.py \
-    --llm_ckp ../DCAI-share/llm/Baichuan2-7B-Chat \
-    --lora_path weights/absa_baseline_d1_train-500-Baichuan2-7B-Chat \
+    --llm_ckp ../DCAI-share/llm/chinese-alpaca-2-7b \
     --data_path data/absa_baseline_d1_test.json \
     --prompt_key prompt \
     --target_key output \

@@ -15,4 +15,10 @@ evaluate.ipynb
 predict.sh
 my_templates.py
 acc.py
-train_llama.sh
+train_*.sh
+
+predict_llama.py
+acc.py
+
+
+/SDE/NER_GENIA/

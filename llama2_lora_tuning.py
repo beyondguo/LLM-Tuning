@@ -3,7 +3,7 @@ from transformers.integrations import TensorBoardCallback
 from torch.utils.tensorboard import SummaryWriter
 from transformers import TrainingArguments
 from transformers import Trainer, HfArgumentParser
-from transformers import LlamaTokenizer, AutoModelForCausalLM
+from transformers import LlamaTokenizer, AutoModelForCausalLM, LlamaForCausalLM
 from transformers import DataCollatorForLanguageModeling
 import torch
 import torch.nn as nn
@@ -14,14 +14,12 @@ import os
 from pprint import pprint as print
 
 
-
-
 @dataclass
 class FinetuneArguments:
-    model_version: str = field(default="base")
+    model_version: str = field(default="chat")
     tokenized_dataset: str = field(default=" ") # tokenized之后的数据集文件夹
     train_size: int = field(default=1000) # train size
-    eval_size: int = field(default=1000) # train size
+    eval_size: int = field(default=500) # train size
     lora_rank: int = field(default=8)
     previous_lora_weights: str = field(default=None) # 如果要在前面的 LoRA 上继续训练，就设置一下之前的地址
     no_prompt_loss: int = field(default=0) # 默认 prompt 参与loss计算
@@ -53,9 +51,9 @@ finetune_args, training_args = HfArgumentParser(
 
 
 if finetune_args.model_version == 'base':
-    model_checkpoint = "../DCAI-share/llm/chinese-llama-2-7b"
+    model_checkpoint = "/root/DCAI-share/llm/..."
 elif finetune_args.model_version == 'chat':
-    model_checkpoint = "../DCAI-share/llm/chinese-alpaca-2-7b"
+    model_checkpoint = "/root/DCAI-share/llm/Llama-2-7b-chat-hf"
 print(f"*** Notice: Your are using `{model_checkpoint}` model! ***")
 
 
@@ -98,6 +96,7 @@ else:
 
 # load dataset
 dataset = datasets.load_from_disk('data/tokenized_data/'+finetune_args.tokenized_dataset)
+# dataset = datasets.load_from_disk(finetune_args.tokenized_dataset)
 train_dataset = dataset.select(range(finetune_args.train_size)) # 取前 N 条训练
 eval_dataset = dataset.select(list(range(len(dataset)))[-finetune_args.eval_size:]) # 取后 N 条验证
 print(f"train: {len(train_dataset)}")
@@ -105,11 +104,11 @@ print(f"evaluation: {len(eval_dataset)}")
 
 
 # init model
-model = AutoModelForCausalLM.from_pretrained(
+model = LlamaForCausalLM.from_pretrained(
     model_checkpoint, load_in_8bit=False, trust_remote_code=True, 
     device_map="auto" # 模型不同层会被自动分配到不同GPU上进行计算
     # device_map={'':torch.cuda.current_device()} # 艹，这个设置有bug，一个小小的baichaun在80G的卡都能爆，换成 auto 立马就好了
-)
+    )
 print(model.hf_device_map)
 
 model.gradient_checkpointing_enable() 
@@ -123,8 +122,9 @@ if finetune_args.previous_lora_weights == None:
         task_type=TaskType.CAUSAL_LM,
         inference_mode=False,
         r=finetune_args.lora_rank,
-        lora_alpha=32,
+        lora_alpha=16,
         lora_dropout=0.1,
+        #lora_dropout=0.1
         target_modules = ["q_proj","k_proj","v_proj","o_proj","gate_proj","down_proj","up_proj"] # https://github.com/ymcui/Chinese-LLaMA-Alpaca-2/wiki/sft_scripts_zh 
     )
     
