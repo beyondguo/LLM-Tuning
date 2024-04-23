@@ -19,6 +19,3 @@ train_*.sh
 
 predict_llama.py
 acc.py
-
-
-/SDE/NER_GENIA/
