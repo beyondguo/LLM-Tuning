@@ -1,14 +1,20 @@
-# Tuning LLMs with no tears 💦.
-
-
-
-🔥 Latest:
-We introduce the idea of **Sample Design Engineering (SDE)** for LLMs' Downstream Fine-Tuning.
-
-Code/Paper coming very soon~
+# LLM-Tuning
 
 ---
 
+## 🔥 Latest:
+We introduce the idea of **Sample Design Engineering (SDE)** for LLMs' Downstream Fine-Tuning. 我们提出了针对大模型下游任务微调的「样本设计工程」。
+
+- Paper: [Sample Design Engineering: An Empirical Study of What Makes Good Downstream Fine-Tuning Samples for LLMs](https://arxiv.org/abs/2404.13033)
+- Code at the [SDE](https://github.com/beyondguo/LLM-Tuning/tree/master/SDE) directory.
+- Abs: We introduce SDE as an effective method to enhance the downstream-tuning performances of LLMs. Through comprehensive ID and OOD experiments involving six LLMs, we demonstrate the effects of various sample design strategies, uncovering some interesting patterns that are consistent across different LLMs. Building on these findings, we develop the ES-SDE approach, which integrates the most effective options. Our experiments on three new tasks with two additional LLMs consistently show ES-SDE's superiority over baseline methods. Further analysis of the relationship between PE and SDE suggests that effective prompt designs do not necessarily translate to successful sample designs. This observation opens up avenues for more detailed investigations into the mechanisms of SDE in future research.
+- 简介：提示工程（Prompt Engineering）已经成为提升大模型的零样本、少样本推理能力的基本操作。然而，在大模型实际落地解决下游业务问题的时候，我们往往还需要一些针对性的样本对模型进行微调训练。我们在大模型实际落地研发中发现：虽然大模型已经足够强大，但是微调样本的不同设计，依然会显著影响大模型微调后的效果。因此，如何设计更好的微调样本，成为了一个新的问题。对此，本文首次提出了样本设计工程（Sample Design Engineering, SDE）的概念，系统性地探究了影响大模型下游任务微调的多种设计选项，发现了诸多有趣且引人深思的结论，并提出了一种在多个复杂下游任务上均稳定优异设计方案。本研究表明，细致地考虑大模型微调样本的设计，可以使用更少的样本训练出在下游任务上表现更好的模型。
+
+
+
+---
+
+## Fine-tuning LLMs, with no tears 💦.
 
 💻 可复现的小项目：
 - [**baichuan-RLHF**：基于 LoRA 的 RLHF 教程，让 baichaun 活泼如网友！(New!🔥)](/RLHF/)
