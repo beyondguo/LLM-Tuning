@@ -1,0 +1,132 @@
+instruction-last_d1_500_internlm-chat_d1_predictions
+样本数量：50
+格式不符合数量：0
+格式不符合数量占比：0.0
+Acc_sentence:
+{'Correct_Pre': 20, 'Incorrect_Pre': 30, 'Acc': 0.4}
+Acc_ALL:
+{'Correct_Pre': 260, 'Incorrect_Pre': 40, 'Acc': 0.8667}
+Acc_食品评价:
+{'Correct_Pre': 41, 'Incorrect_Pre': 9, 'Acc': 0.82}
+Acc_饮品评价:
+{'Correct_Pre': 43, 'Incorrect_Pre': 7, 'Acc': 0.86}
+Acc_价格水平:
+{'Correct_Pre': 43, 'Incorrect_Pre': 7, 'Acc': 0.86}
+Acc_卫生情况:
+{'Correct_Pre': 45, 'Incorrect_Pre': 5, 'Acc': 0.9}
+Acc_服务人员态度:
+{'Correct_Pre': 39, 'Incorrect_Pre': 11, 'Acc': 0.78}
+Acc_停车方便程度:
+{'Correct_Pre': 49, 'Incorrect_Pre': 1, 'Acc': 0.98}
+
+matrix_ALL:
+	pre-正面	pre-中性	pre-负面	pre-未提及
+la-正面	92	1	2	5
+la-中性	12	3	4	3
+la-负面	5	0	7	3
+la-未提及	4	0	1	158
+正面_pre_num:113; precision:0.8142
+正面_la_num:100; recall:0.92
+中性_pre_num:4; precision:0.75
+中性_la_num:22; recall:0.1364
+负面_pre_num:14; precision:0.5
+负面_la_num:15; recall:0.4667
+未提及_pre_num:169; precision:0.9349
+未提及_la_num:163; recall:0.9693
+kappa:0.7639
+
+matrix_食品评价:
+	pre-正面	pre-中性	pre-负面	pre-未提及
+la-正面	36	0	0	0
+la-中性	6	3	1	0
+la-负面	2	0	2	0
+la-未提及	0	0	0	0
+正面_pre_num:44; precision:0.8182
+正面_la_num:36; recall:1.0
+中性_pre_num:3; precision:1.0
+中性_la_num:10; recall:0.3
+负面_pre_num:3; precision:0.6667
+负面_la_num:4; recall:0.5
+未提及_pre_num:0; precision:nan
+未提及_la_num:0; recall:nan
+kappa:0.5682
+
+matrix_饮品评价:
+	pre-正面	pre-中性	pre-负面	pre-未提及
+la-正面	12	0	0	0
+la-中性	3	0	0	0
+la-负面	1	0	0	1
+la-未提及	2	0	0	31
+正面_pre_num:18; precision:0.6667
+正面_la_num:12; recall:1.0
+中性_pre_num:0; precision:nan
+中性_la_num:3; recall:0.0
+负面_pre_num:0; precision:nan
+负面_la_num:2; recall:0.0
+未提及_pre_num:32; precision:0.9688
+未提及_la_num:33; recall:0.9394
+kappa:0.7123
+
+matrix_价格水平:
+	pre-正面	pre-中性	pre-负面	pre-未提及
+la-正面	17	1	1	0
+la-中性	3	0	0	0
+la-负面	0	0	2	2
+la-未提及	0	0	0	24
+正面_pre_num:20; precision:0.85
+正面_la_num:19; recall:0.8947
+中性_pre_num:1; precision:0.0
+中性_la_num:3; recall:0.0
+负面_pre_num:3; precision:0.6667
+负面_la_num:4; recall:0.5
+未提及_pre_num:26; precision:0.9231
+未提及_la_num:24; recall:1.0
+kappa:0.7763
+
+matrix_卫生情况:
+	pre-正面	pre-中性	pre-负面	pre-未提及
+la-正面	6	0	0	3
+la-中性	0	0	0	1
+la-负面	0	0	0	0
+la-未提及	1	0	0	39
+正面_pre_num:7; precision:0.8571
+正面_la_num:9; recall:0.6667
+中性_pre_num:0; precision:nan
+中性_la_num:1; recall:0.0
+负面_pre_num:0; precision:nan
+负面_la_num:0; recall:nan
+未提及_pre_num:43; precision:0.907
+未提及_la_num:40; recall:0.975
+kappa:0.6671
+
+matrix_服务人员态度:
+	pre-正面	pre-中性	pre-负面	pre-未提及
+la-正面	19	0	1	2
+la-中性	0	0	3	1
+la-负面	2	0	3	0
+la-未提及	1	0	1	17
+正面_pre_num:22; precision:0.8636
+正面_la_num:22; recall:0.8636
+中性_pre_num:0; precision:nan
+中性_la_num:4; recall:0.0
+负面_pre_num:8; precision:0.375
+负面_la_num:5; recall:0.6
+未提及_pre_num:20; precision:0.85
+未提及_la_num:19; recall:0.8947
+kappa:0.6516
+
+matrix_停车方便程度:
+	pre-正面	pre-中性	pre-负面	pre-未提及
+la-正面	2	0	0	0
+la-中性	0	0	0	1
+la-负面	0	0	0	0
+la-未提及	0	0	0	47
+正面_pre_num:2; precision:1.0
+正面_la_num:2; recall:1.0
+中性_pre_num:0; precision:nan
+中性_la_num:1; recall:0.0
+负面_pre_num:0; precision:nan
+负面_la_num:0; recall:nan
+未提及_pre_num:48; precision:0.9792
+未提及_la_num:47; recall:1.0
+kappa:0.852
